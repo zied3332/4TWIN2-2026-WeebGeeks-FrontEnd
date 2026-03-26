@@ -1,18 +1,27 @@
 // src/pages/auth/Signup.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser } from "../../services/auth.service";
+import { getAllDepartments } from "../../services/departments.service";
 import "../../auth-pages.css";
 
 // ✅ Import image from src/assets
 import authBg from "../../assets/logbackimg.png";
+
+interface Department {
+  _id: string;
+  name: string;
+  code: string;
+  description?: string;
+  manager_id?: string;
+}
 
 export default function Signup() {
   const nav = useNavigate();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [dept, setDept] = useState("");
+  const [departementId, setDepartementId] = useState("");
   const [password, setPassword] = useState("");
 
   const [matricule, setMatricule] = useState("");
@@ -21,6 +30,27 @@ export default function Signup() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingDepts, setLoadingDepts] = useState(true);
+  const [deptError, setDeptError] = useState("");
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        setLoadingDepts(true);
+        const depts = await getAllDepartments();
+        setDepartments(depts);
+      } catch (err: any) {
+        setDeptError(err?.message || "Failed to load departments");
+        console.error("Error fetching departments:", err);
+      } finally {
+        setLoadingDepts(false);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,7 +62,7 @@ export default function Signup() {
         name: fullName,
         email,
         password,
-        department: dept,
+        departement_id: departementId,
         matricule,
         telephone,
         date_embauche: dateEmbauche,
@@ -115,12 +145,23 @@ export default function Signup() {
 
               <div className="auth-field">
                 <label className="auth-label">Department</label>
-                <input
+                {deptError && <div style={{ color: "#d32f2f", fontSize: "0.85rem", marginBottom: "4px" }}>{deptError}</div>}
+                <select
                   className="auth-input"
-                  value={dept}
-                  onChange={(e) => setDept(e.target.value)}
-                  placeholder="HR / IT / Sales..."
-                />
+                  value={departementId}
+                  onChange={(e) => setDepartementId(e.target.value)}
+                  disabled={loadingDepts}
+                  style={{ cursor: loadingDepts ? "not-allowed" : "pointer" }}
+                >
+                  <option value="">
+                    {loadingDepts ? "Loading departments..." : "Select a department"}
+                  </option>
+                  {departments.map((dept) => (
+                    <option key={dept._id} value={dept._id}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

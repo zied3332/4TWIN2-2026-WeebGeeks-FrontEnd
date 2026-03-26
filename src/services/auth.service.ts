@@ -29,7 +29,7 @@ export async function registerUser(data: {
   name: string;
   email: string;
   password: string;
-  department?: string;
+  departement_id?: string;
   matricule: string;
   telephone: string;
   date_embauche: string;

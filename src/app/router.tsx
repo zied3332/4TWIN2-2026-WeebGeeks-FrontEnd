@@ -20,6 +20,8 @@ import HrRecommendations from "../pages/hr/Recommendations";
 import HrGenerateRecommendations from "../pages/hr/GenerateRecommendations";
 import UsersManagement from "../pages/hr/UsersManagement";
 import HrDepartments from "../pages/hr/Departments";
+import SkillsManagementPage from "../pages/hr/skills/SkillsManagementPage";
+import AssignSkillPage from "../pages/hr/skills/AssignSkillPage";
 
 // Manager pages
 import ManagerTeam from "../pages/manger/ManagerTeam";
@@ -29,6 +31,7 @@ import MyActivities from "../pages/employee/MyActivities";
 import Recommendations from "../pages/employee/Recommendations";
 import History from "../pages/employee/History";
 import CvUpload from "../pages/employee/CvUpload";
+import MySkillsPage from "../pages/employee/skills/MySkillsPage";
 
 import Blank from "../pages/Blank";
 import Profile from "../pages/profile/Profile";
@@ -88,40 +91,36 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // ✅ HR protected routes (unchanged)
- {
-  element: <RequireRole allow={["HR"]} />,
-  children: [
-    {
-      path: "/hr",
-      element: <HrLayout />,
-      children: [
-        // ✅ default: show blank (keeps sidebar but empty page)
-        { index: true, element: <Blank /> },
+  // ✅ HR protected routes
+  {
+    element: <RequireRole allow={["HR"]} />,
+    children: [
+      {
+        path: "/hr",
+        element: <HrLayout />,
+        children: [
+          { index: true, element: <Blank /> },
+          { path: "blank", element: <Blank /> },
 
-        // ✅ block these pages (even if URL typed)
-        { path: "blank", element: <Blank /> },
+          { path: "dashboard", element: <Blank /> },
+          { path: "employees", element: <HrEmployees /> },
+          { path: "employees/:id", element: <Blank /> },
+          { path: "skills-dashboard", element: <Blank /> },
+          { path: "recommendations", element: <Blank /> },
+          { path: "recommendations/generate", element: <Blank /> },
 
-        // ✅ block these pages (even if URL typed)
-        { path: "dashboard", element: <Blank /> },
-        { path: "employees", element: <HrEmployees /> },
-        { path: "employees/:id", element: <Blank /> },
-        { path: "skills-dashboard", element: <Blank /> },
-        { path: "recommendations", element: <Blank /> },
-        { path: "recommendations/generate", element: <Blank /> },
+          { path: "users", element: <UsersManagement /> },
+          { path: "departments", element: <HrDepartments /> },
+          { path: "skills", element: <SkillsManagementPage /> },
+          { path: "skills/assign", element: <AssignSkillPage /> },
 
-        // ✅ keep working
-        { path: "users", element: <UsersManagement /> },
-        { path: "departments", element: <HrDepartments /> },
+          { path: "profile", element: <Profile /> },
+        ],
+      },
+    ],
+  },
 
-        // (optional) keep profile working, or change to <Blank /> if you want it blocked too
-        { path: "profile", element: <Profile /> },
-      ],
-    },
-  ],
-},
-
-  // ✅ MANAGER protected routes (FIXED)
+  // ✅ MANAGER protected routes
   {
     element: <RequireRole allow={["MANAGER"]} />,
     children: [
@@ -129,28 +128,21 @@ export const router = createBrowserRouter([
         path: "/manager",
         element: <ManagerLayout />,
         children: [
-          // ✅ default blank
           { index: true, element: <Blank /> },
-
-          // ✅ optional blank route
           { path: "blank", element: <Blank /> },
 
-          // ✅ block these pages
           { path: "dashboard", element: <Blank /> },
           { path: "approvals", element: <Blank /> },
           { path: "analytics", element: <Blank /> },
 
-          // ✅ keep working
           { path: "team", element: <ManagerTeam /> },
-
-          // keep profile working (or change to <Blank />)
           { path: "profile", element: <Profile /> },
         ],
       },
     ],
   },
 
-  // ✅ EMPLOYEE protected routes (FIXED)
+  // ✅ EMPLOYEE protected routes
   {
     element: <RequireRole allow={["EMPLOYEE"]} />,
     children: [
@@ -158,9 +150,7 @@ export const router = createBrowserRouter([
         path: "/me",
         element: <EmployeeLayout />,
         children: [
-          // ✅ ONLY ONE index route
           { index: true, element: <Blank /> },
-
           { path: "blank", element: <Blank /> },
 
           { path: "profile", element: <Profile /> },
@@ -168,6 +158,7 @@ export const router = createBrowserRouter([
           { path: "recommendations", element: <Recommendations /> },
           { path: "history", element: <History /> },
           { path: "cv", element: <CvUpload /> },
+          { path: "skills", element: <MySkillsPage /> },
         ],
       },
     ],

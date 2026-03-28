@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCurrentUser, type CurrentUser, type Role } from "../../services/auth.service";
+import { getAllDepartments, type Department } from "../../services/departments.service";
 import { signOut } from "../../utils/auth";
 import {
   FiHome,
@@ -105,14 +106,29 @@ function roleTone(role?: Role): Tone {
   return "neutral";
 }
 
-function getDepartmentName(user: any): string {
-  // Check if departement_id is populated with a department object
+function isObjectIdLike(v?: string): boolean {
+  return /^[a-f\d]{24}$/i.test(String(v || "").trim());
+}
+
+function getDepartmentName(user: any, departmentNameById?: Map<string, string>): string {
+  // Prefer the direct department field because it reflects latest updates immediately.
+  if (user?.department && typeof user.department === 'string') {
+    const dep = user.department.trim();
+    if (departmentNameById && isObjectIdLike(dep)) {
+      return departmentNameById.get(dep) || dep;
+    }
+    return dep;
+  }
+  // Fallback to populated legacy department relation.
   if (user?.departement_id && typeof user.departement_id === 'object' && user.departement_id.name) {
     return user.departement_id.name;
   }
-  // Fallback to department field
-  if (user?.department && typeof user.department === 'string') {
-    return user.department;
+  if (typeof user?.departement_id === "string") {
+    const dep = user.departement_id.trim();
+    if (departmentNameById && isObjectIdLike(dep)) {
+      return departmentNameById.get(dep) || dep;
+    }
+    return dep;
   }
   return "";
 }
@@ -475,6 +491,7 @@ export default function Profile() {
 
   const [avatarUrl, setAvatarUrl] = useState("");
   const [telephone, setTelephone] = useState("");
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showRemovePhotoConfirm, setShowRemovePhotoConfirm] = useState(false);
   const [removingAvatar, setRemovingAvatar] = useState(false);
@@ -504,10 +521,14 @@ export default function Profile() {
 
     (async () => {
       try {
-        const me = await getCurrentUser();
+        const [me, depts] = await Promise.all([
+          getCurrentUser(),
+          getAllDepartments().catch(() => []),
+        ]);
         if (cancelled) return;
 
         const uAny = me as any;
+        setDepartments(Array.isArray(depts) ? depts : []);
         const storedAvatar = getStoredAvatarUrl(me._id);
         const effectiveAvatar = uAny.avatarUrl ?? storedAvatar ?? "";
         if (effectiveAvatar) {
@@ -522,7 +543,7 @@ export default function Profile() {
 
         setEditName(me.name ?? "");
         setEditEmail(me.email ?? "");
-        setEditDepartment(me.department ?? "");
+        setEditDepartment(String(me.department ?? uAny?.departement_id?._id ?? uAny?.departement_id ?? ""));
         setEditMatricule(me.matricule ?? "");
         setEditRole((safeUpper(me.role as any) as Role) || ("EMPLOYEE" as Role));
         setEditStatus((uAny.status ?? "") as string);
@@ -561,6 +582,16 @@ export default function Profile() {
     const t = setTimeout(() => setToast(""), 1800);
     return () => clearTimeout(t);
   }, [toast]);
+
+  const departmentNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    (departments || []).forEach((d) => {
+      const id = String(d?._id || "").trim();
+      const name = String(d?.name || "").trim();
+      if (id && name) map.set(id, name);
+    });
+    return map;
+  }, [departments]);
 
   const canEditSensitive = safeUpper(user?.role as any) === "HR";
   const canEditSelfBasics = Boolean(user);
@@ -618,7 +649,7 @@ export default function Profile() {
     const checks = [
       Boolean((uAny.avatarUrl ?? avatarUrl)?.trim()),
       Boolean((user.telephone ?? telephone)?.trim()),
-      Boolean((getDepartmentName(user) ?? editDepartment)?.trim()),
+      Boolean((getDepartmentName(user, departmentNameById) ?? editDepartment)?.trim()),
       Boolean((user.matricule ?? editMatricule)?.trim()),
       Boolean((user.date_embauche ?? editHireDate)?.toString().trim()),
       Boolean((uAny.status ?? editStatus)?.toString().trim()),
@@ -626,7 +657,7 @@ export default function Profile() {
 
     const done = checks.filter(Boolean).length;
     return Math.round((done / checks.length) * 100);
-  }, [user, avatarUrl, telephone, editDepartment, editMatricule, editHireDate, editStatus]);
+  }, [user, avatarUrl, telephone, editDepartment, editMatricule, editHireDate, editStatus, departmentNameById]);
 
   const accountStatusLabel = useMemo(() => {
     const uAny = user as any;
@@ -665,6 +696,7 @@ export default function Profile() {
       next.avatarUrl = newAvatar;
       next.department = editDepartment.trim() || undefined;
       setUser(next);
+      localStorage.setItem("user", JSON.stringify(next));
       if (newAvatar) setStoredAvatarUrl(user._id, newAvatar);
       else setStoredAvatarUrl(user._id, "");
       window.dispatchEvent(new CustomEvent("avatar-updated"));
@@ -1013,7 +1045,7 @@ export default function Profile() {
 
               <div>
                 <div style={L.heroName}>{user.name}</div>
-                <div style={L.heroRole}>{roleLabel(user.role)}{getDepartmentName(user) ? ` • ${getDepartmentName(user)}` : ""}</div>
+                <div style={L.heroRole}>{roleLabel(user.role)}{getDepartmentName(user, departmentNameById) ? ` • ${getDepartmentName(user, departmentNameById)}` : ""}</div>
 
                 <div style={L.metaRow}>
                   {user.matricule ? (
@@ -1164,7 +1196,7 @@ export default function Profile() {
                   <Card title="Personal Info" subtitle="View-only summary (company fields may be locked)">
                     <Field label="Email" value={user.email} />
                     <Field label="Phone" value={user.telephone} />
-                    <Field label="Department" value={getDepartmentName(user) || "—"} />
+                    <Field label="Department" value={getDepartmentName(user, departmentNameById) || "—"} />
                     <Field label="Matricule" value={user.matricule} />
                     {isEmployee && <Field label="Job Title" value={editJobTitle || "—"} />}
                     {isEmployee && <Field label="Experience Years" value={String(editExperienceYears ?? 0)} />}
@@ -1198,7 +1230,7 @@ export default function Profile() {
                   <Card title="System Status" subtitle="Live status overview">
                     <Field label="Presence" value={user.en_ligne ? "Online (active session)" : "Offline"} />
                     <Field label="Role" value={safeUpper(user.role as any)} />
-                    <Field label="Department" value={getDepartmentName(user) || "—"} />
+                    <Field label="Department" value={getDepartmentName(user, departmentNameById) || "—"} />
                     {"emailVerified" in (user as any) ? (
                       <Field label="Email verified" value={String((user as any).emailVerified)} />
                     ) : null}
@@ -1274,7 +1306,13 @@ export default function Profile() {
                       <div style={{ display: "grid", gap: 10 }}>
                         <Field label="Full name" value={editName || user.name} />
                         <Field label="Email" value={editEmail || user.email} />
-                        <Field label="Department" value={editDepartment || getDepartmentName(user)} />
+                        <Field
+                          label="Department"
+                          value={
+                            getDepartmentName({ department: editDepartment }, departmentNameById) ||
+                            getDepartmentName(user, departmentNameById)
+                          }
+                        />
                         <Field label="Matricule" value={editMatricule || user.matricule} />
                         <Field
                           label="Hire date"
@@ -1307,12 +1345,32 @@ export default function Profile() {
                           hint={!canEditEmail ? "Email editing restricted" : undefined}
                         />
 
-                        <Input
-                          label="Department"
-                          value={editDepartment}
-                          onChange={setEditDepartment}
-                          placeholder="Department"
-                        />
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <div style={{ fontSize: 12, fontWeight: 900, color: "#475569" }}>Department</div>
+                          <select
+                            value={editDepartment}
+                            onChange={(e) => setEditDepartment(e.target.value)}
+                            style={{
+                              padding: "11px 12px",
+                              borderRadius: 12,
+                              border: "1px solid #e6ebf1",
+                              background: "#fff",
+                              color: "#0f172a",
+                              fontWeight: 800,
+                              outline: "none",
+                            }}
+                          >
+                            <option value="">Select department</option>
+                            {departments.map((d) => (
+                              <option key={d._id} value={d._id}>
+                                {d.name}
+                              </option>
+                            ))}
+                            {editDepartment && !departmentNameById.has(editDepartment) ? (
+                              <option value={editDepartment}>{editDepartment}</option>
+                            ) : null}
+                          </select>
+                        </div>
                         <Input
                           label="Matricule"
                           value={editMatricule}

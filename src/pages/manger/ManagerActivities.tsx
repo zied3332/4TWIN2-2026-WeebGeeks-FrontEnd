@@ -5,6 +5,9 @@ import {
   type ActivityRecord,
   type ActivitySkillRecord,
 } from "../../services/activities.service";
+import { getUsers, type User } from "../../services/users.service";
+import { getAllDepartments, type Department } from "../../services/departments.service";
+
 const card: React.CSSProperties = {
   background: "white",
   border: "1px solid #eaecef",
@@ -21,13 +24,6 @@ const btn: React.CSSProperties = {
   cursor: "pointer",
 };
 
-const btnGreen: React.CSSProperties = {
-  ...btn,
-  border: "none",
-  background: "#1f7a5a",
-  color: "white",
-};
-
 const badge = (bg: string, color: string): React.CSSProperties => ({
   display: "inline-flex",
   alignItems: "center",
@@ -39,6 +35,13 @@ const badge = (bg: string, color: string): React.CSSProperties => ({
   fontSize: 12,
 });
 
+const statusColors: Record<string, [string, string]> = {
+  PLANNED: ["#eef2ff", "#3730a3"],
+  IN_PROGRESS: ["#dcfce7", "#15803d"],
+  COMPLETED: ["#f0fdf4", "#166534"],
+  CANCELLED: ["#fee2e2", "#991b1b"],
+};
+
 const contextColors: Record<string, [string, string]> = {
   UPSKILLING: ["#e0f2fe", "#0369a1"],
   EXPERTISE: ["#fef3c7", "#f59e0b"],
@@ -49,13 +52,15 @@ function formatLevel(v: string) {
   return v.charAt(0) + v.slice(1).toLowerCase();
 }
 
-export default function MyActivities() {
-  const [activities, setActivities] = useState<ActivityRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [enrolling, setEnrolling] = useState<string | null>(null);
-  const [enrollSuccess, setEnrollSuccess] = useState("");
+function formatStatus(v: string) {
+  return v.replaceAll("_", " ");
+}
 
+export default function ManagerActivities() {
+  const [activities, setActivities] = useState<ActivityRecord[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecord | null>(null);
   const [activitySkills, setActivitySkills] = useState<ActivitySkillRecord[]>([]);
 
@@ -71,12 +76,24 @@ export default function MyActivities() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      setError("");
       try {
-        const activitiesRes = await listActivities();
-        setActivities(activitiesRes || []);
+        const [activitiesRes, usersRes, departmentsRes] = await Promise.allSettled([
+          listActivities(),
+          getUsers(),
+          getAllDepartments(),
+        ]);
+
+        if (activitiesRes.status === "fulfilled") {
+          setActivities(activitiesRes.value || []);
+        }
+        if (usersRes.status === "fulfilled") {
+          setUsers(usersRes.value || []);
+        }
+        if (departmentsRes.status === "fulfilled") {
+          setDepartments(departmentsRes.value || []);
+        }
       } catch (e: any) {
-        setError(e?.message || "Failed to load activities.");
+        console.error("Failed to load data:", e);
       } finally {
         setLoading(false);
       }
@@ -85,17 +102,29 @@ export default function MyActivities() {
     load();
   }, []);
 
-  const myDepartmentId = useMemo(() => {
+  const managedDepartmentId = useMemo(() => {
     return String(currentUser?.department || "");
   }, [currentUser]);
 
-  const departmentActivities = useMemo(() => {
-    // Employees should only see PLANNED activities assigned to their own department.
-    if (!myDepartmentId) return [];
-    return activities.filter(
-      (a: any) => !!a.departmentId && String(a.departmentId) === myDepartmentId && a.status === "PLANNED"
-    );
-  }, [activities, myDepartmentId]);
+  const filteredActivities = useMemo(() => {
+    // Managers should only see activities explicitly assigned to their own department.
+    if (!managedDepartmentId) return [];
+    return activities.filter((a: any) => !!a.departmentId && String(a.departmentId) === managedDepartmentId);
+  }, [activities, managedDepartmentId]);
+
+  const managerNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    users
+      .filter((u) => String(u.role || "").toUpperCase() === "MANAGER")
+      .forEach((m) => map.set(String(m._id), String(m.name || "-")));
+    return map;
+  }, [users]);
+
+  const departmentNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    departments.forEach((d) => map.set(String(d._id), String(d.name || "-")));
+    return map;
+  }, [departments]);
 
   const openActivityDetails = async (activity: ActivityRecord) => {
     setSelectedActivity(activity);
@@ -105,22 +134,6 @@ export default function MyActivities() {
     } catch (e: any) {
       console.error("Failed to load skills:", e);
       setActivitySkills([]);
-    }
-  };
-
-  const handleEnroll = async (activityId: string) => {
-    setEnrolling(activityId);
-    setError("");
-    setEnrollSuccess("");
-    try {
-      // TODO: Create API endpoint for enrollment
-      // await enrollInActivity(activityId);
-      setEnrollSuccess("Enrollment request submitted! HR will review it.");
-      setTimeout(() => setEnrollSuccess(""), 3000);
-    } catch (e: any) {
-      setError(e?.message || "Failed to enroll in activity.");
-    } finally {
-      setEnrolling(null);
     }
   };
 
@@ -138,31 +151,19 @@ export default function MyActivities() {
     <div className="page">
       <div className="container">
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ marginBottom: 0 }}>Available Activities</h1>
+          <h1 style={{ marginBottom: 0 }}>Department Activities</h1>
           <p style={{ color: "#6b7280", marginTop: 4 }}>
-            Browse and enroll in department activities to develop your skills
+            Activities for your department team members
           </p>
         </div>
 
-        {error && (
-          <div style={{ ...card, background: "#fee2e2", borderColor: "#fca5a5", marginBottom: 16, color: "#991b1b" }}>
-            {error}
-          </div>
-        )}
-
-        {enrollSuccess && (
-          <div style={{ ...card, background: "#dcfce7", borderColor: "#86efac", marginBottom: 16, color: "#166534" }}>
-            {enrollSuccess}
-          </div>
-        )}
-
-        {departmentActivities.length === 0 ? (
+        {filteredActivities.length === 0 ? (
           <div style={{ ...card, textAlign: "center", color: "#a3a3a3", padding: 40 }}>
-            <p>No activities available yet for your department. Check back soon!</p>
+            <p>No activities for your department yet.</p>
           </div>
         ) : (
           <div style={{ display: "grid", gap: 16 }}>
-            {departmentActivities.map((activity: any) => (
+            {filteredActivities.map((activity: any) => (
               <div
                 key={activity._id}
                 style={{
@@ -211,18 +212,9 @@ export default function MyActivities() {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 8, flexDirection: "column", minWidth: 150 }}>
-                  <button style={{ ...btn }} onClick={() => openActivityDetails(activity)}>
-                    View Details
-                  </button>
-                  <button
-                    style={{ ...btnGreen }}
-                    disabled={enrolling === activity._id}
-                    onClick={() => handleEnroll(activity._id)}
-                  >
-                    {enrolling === activity._id ? "Enrolling..." : "Enroll Now"}
-                  </button>
-                </div>
+                <button style={btn} onClick={() => openActivityDetails(activity)}>
+                  View Details
+                </button>
               </div>
             ))}
           </div>
@@ -258,7 +250,7 @@ export default function MyActivities() {
               </div>
               <button
                 type="button"
-                style={{ ...btn }}
+                style={btn}
                 onClick={() => setSelectedActivity(null)}
               >
                 Close
@@ -299,9 +291,54 @@ export default function MyActivities() {
                 </div>
               </div>
 
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Status</div>
+                  <span style={badge(...statusColors[selectedActivity.status])}>
+                    {formatStatus(selectedActivity.status)}
+                  </span>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Context</div>
+                  <span style={badge(...contextColors[selectedActivity.priorityContext])}>
+                    {selectedActivity.priorityContext}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Priority Level</div>
+                  <div style={{ color: "#475569" }}>{formatLevel(selectedActivity.targetLevel)}</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Seats Available</div>
+                  <div style={{ color: "#475569" }}>{selectedActivity.availableSlots}</div>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Department</div>
+                  <div style={{ color: "#475569" }}>
+                    {departmentNameById.get(selectedActivity.departmentId || "") || "-"}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Responsible Manager</div>
+                  <div style={{ color: "#475569" }}>
+                    {managerNameById.get(selectedActivity.responsibleManagerId || "") || "Unassigned"}
+                  </div>
+                </div>
+              </div>
+
               <div>
-                <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Priority Level</div>
-                <div style={{ color: "#475569" }}>{formatLevel(selectedActivity.targetLevel)}</div>
+                <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Created At</div>
+                <div style={{ color: "#475569" }}>
+                  {selectedActivity.createdAt
+                    ? new Date(selectedActivity.createdAt).toLocaleString()
+                    : "-"}
+                </div>
               </div>
 
               {activitySkills.length > 0 && (
@@ -332,16 +369,6 @@ export default function MyActivities() {
               <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
                 <button style={{ ...btn, flex: 1 }} onClick={() => setSelectedActivity(null)}>
                   Close
-                </button>
-                <button
-                  style={{ ...btnGreen, flex: 1 }}
-                  disabled={enrolling === selectedActivity._id}
-                  onClick={() => {
-                    handleEnroll(selectedActivity._id);
-                    setSelectedActivity(null);
-                  }}
-                >
-                  {enrolling === selectedActivity._id ? "Enrolling..." : "Enroll Now"}
                 </button>
               </div>
             </div>

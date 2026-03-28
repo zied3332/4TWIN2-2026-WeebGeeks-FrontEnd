@@ -27,13 +27,14 @@ export default function HrLayout() {
       nav={[
         { to: "/hr/blank", label: "Dashboard" },
         { to: "/hr/employees", label: "Employee Management" },
+        { to: "/hr/activities", label: "Activity Management", end: true },
 
         // ✅ UPDATED SKILLS LINKS
-        { to: "/hr/skills", label: "Skills Management" },
-        { to: "/hr/skills/assign", label: "Assign Skills" },
+        { to: "/hr/skills", label: "Skills Management", end: true },
+        { to: "/hr/skills/assign", label: "Assign Skills", end: true },
 
         { to: "/hr/blank", label: "Recommendations" },
-        { to: "/hr/departments", label: "Departments" },
+        { to: "/hr/departments", label: "Departments Management" },
         { to: "/hr/users", label: "User Management" },
       ]}
       topbarRight={

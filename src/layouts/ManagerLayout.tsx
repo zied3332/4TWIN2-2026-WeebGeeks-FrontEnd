@@ -28,6 +28,7 @@ export default function ManagerLayout() {
         { to: "/manager/blank", label: "Dashboard" },
         { to: "/manager/blank", label: "Approvals" },
         { to: "/manager/team", label: "My Team" },
+          { to: "/manager/activities", label: "Activities" },
         { to: "/manager/blank", label: "Analytics" },
       ]}
       topbarRight={

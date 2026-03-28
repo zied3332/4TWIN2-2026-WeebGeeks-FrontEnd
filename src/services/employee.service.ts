@@ -71,3 +71,11 @@ export async function patchEmployeeById(
 	});
 	return handle(res);
 }
+
+export async function deleteEmployeeById(employeeId: string): Promise<void> {
+	const res = await fetch(`${BASE}/employee/${employeeId}`, {
+		method: "DELETE",
+		headers: authHeaders(),
+	});
+	await handle(res);
+}

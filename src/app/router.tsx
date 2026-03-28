@@ -12,12 +12,9 @@ import ManagerLayout from "../layouts/ManagerLayout";
 import EmployeeLayout from "../layouts/EmployeeLayout";
 
 // HR pages
-import HrDashboard from "../pages/hr/Dashboard";
 import HrEmployees from "../pages/hr/Employees";
-import HrEmployeeDetails from "../pages/hr/EmployeeDetails";
+import HrActivitiesManagement from "../pages/hr/ActivitiesManagement.tsx";
 import HrSkillsDashboard from "../pages/hr/HrSkillsDashboard";
-import HrRecommendations from "../pages/hr/Recommendations";
-import HrGenerateRecommendations from "../pages/hr/GenerateRecommendations";
 import UsersManagement from "../pages/hr/UsersManagement";
 import HrDepartments from "../pages/hr/Departments";
 import SkillsManagementPage from "../pages/hr/skills/SkillsManagementPage";
@@ -25,6 +22,7 @@ import AssignSkillPage from "../pages/hr/skills/AssignSkillPage";
 
 // Manager pages
 import ManagerTeam from "../pages/manger/ManagerTeam";
+import ManagerActivities from "../pages/manger/ManagerActivities.tsx";
 
 // Employee pages
 import MyActivities from "../pages/employee/MyActivities";
@@ -104,8 +102,9 @@ export const router = createBrowserRouter([
 
           { path: "dashboard", element: <Blank /> },
           { path: "employees", element: <HrEmployees /> },
+          { path: "activities", element: <HrActivitiesManagement /> },
           { path: "employees/:id", element: <Blank /> },
-          { path: "skills-dashboard", element: <Blank /> },
+          { path: "skills-dashboard", element: <HrSkillsDashboard /> },
           { path: "recommendations", element: <Blank /> },
           { path: "recommendations/generate", element: <Blank /> },
 
@@ -137,6 +136,7 @@ export const router = createBrowserRouter([
 
           { path: "team", element: <ManagerTeam /> },
           { path: "profile", element: <Profile /> },
+            { path: "activities", element: <ManagerActivities /> },
         ],
       },
     ],
@@ -163,6 +163,5 @@ export const router = createBrowserRouter([
       },
     ],
   },
-
   { path: "*", element: <Navigate to="/" replace /> },
 ]);

@@ -8,6 +8,7 @@ import "../index.css";
 type NavItem = {
   to: string;
   label: string;
+  end?: boolean;
 };
 
 function linkClass({ isActive }: { isActive: boolean }) {
@@ -143,13 +144,14 @@ export default function AppShell({
           <span className="badge">{badge}</span>
         </div>
 
-        <div className="muted" style={{ padding: "0 12px 10px", margin: 0 }}>
-          Navigation
-        </div>
-
         <nav className="side-nav" style={{ flex: 1 }}>
           {nav.map((item) => (
-            <NavLink key={item.to} to={item.to} className={linkClass}>
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={linkClass}
+            >
               {item.label}
             </NavLink>
           ))}

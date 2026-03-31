@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  frontend:
+    image: weebgeeks-frontend:latest
+    container_name: weebgeeks-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - ci-network-front
+
+networks:
+  ci-network-front:
+    external: true

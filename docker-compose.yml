@@ -1,8 +1,9 @@
 version: '3.8'
+
 services:
   frontend:
     image: weebgeeks-frontend:latest
-    container_name: weebgeeks-frontend
+    # container_name: weebgeeks-frontend   ← Supprimé (recommandé en CI/CD)
     restart: unless-stopped
     ports:
       - "8080:80"

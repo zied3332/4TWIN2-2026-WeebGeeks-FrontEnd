@@ -4,7 +4,7 @@ import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { signOut } from "../utils/auth";
 import "../index.css";
-
+import NotificationBell from '../components/notifications/NotificationBell';
 type NavItem = {
   to: string;
   label: string;
@@ -139,10 +139,16 @@ export default function AppShell({
           zIndex: 50,
         }}
       >
+     
         <div className="side-brand">
+          
           <div className="side-logo">IntelliHR</div>
           <span className="badge">{badge}</span>
+          <div className="topbar-actions">
+  <NotificationBell />
+</div>
         </div>
+        
 
         <nav className="side-nav" style={{ flex: 1 }}>
           {nav.map((item) => (
@@ -193,6 +199,7 @@ export default function AppShell({
                 </div>
               </div>
 
+      
               {sidebarFooter ? (
                 <div style={{ marginTop: 12 }}>{sidebarFooter}</div>
               ) : null}

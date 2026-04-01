@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import AppShell from "./AppShell";
 import { getSidebarUserCard } from "../utils/sidebarUser";
 import "../index.css";
+import NotificationBell from "../components/notifications/NotificationBell";
 
 export default function EmployeeLayout() {
   const [avatarRefresh, setAvatarRefresh] = useState(0);
@@ -10,7 +11,10 @@ export default function EmployeeLayout() {
   useEffect(() => {
     const onAvatarUpdated = () => setAvatarRefresh((r) => r + 1);
     window.addEventListener("avatar-updated", onAvatarUpdated);
-    return () => window.removeEventListener("avatar-updated", onAvatarUpdated);
+
+    return () => {
+      window.removeEventListener("avatar-updated", onAvatarUpdated);
+    };
   }, []);
 
   const userCard = useMemo(
@@ -28,11 +32,10 @@ export default function EmployeeLayout() {
         { to: "/me/activities", label: "My Activities" },
         { to: "/me/recommendations", label: "Recommendations" },
         { to: "/me/history", label: "History" },
-        { to: "/me/cv", label: "My CV" },
         { to: "/me/skills", label: "My Skills" },
       ]}
       topbarRight={
-        <>
+        <div className="topbar-actions">
           <input className="input" placeholder="Search…" />
           <button className="btn btn-ghost">Help</button>
           <button
@@ -41,7 +44,8 @@ export default function EmployeeLayout() {
           >
             My Skills
           </button>
-        </>
+          <NotificationBell />
+        </div>
       }
       userCard={userCard}
     />

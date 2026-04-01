@@ -14,12 +14,16 @@ type Skill = {
   description?: string;
 };
 
+const ITEMS_PER_PAGE = 8;
+
 export default function SkillsManagementPage() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+
   const [form, setForm] = useState<{
     name: string;
     category: SkillCategory;
@@ -60,6 +64,21 @@ export default function SkillsManagementPage() {
       );
     });
   }, [skills, search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSkills.length / ITEMS_PER_PAGE));
+
+  const paginatedSkills = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    return filteredSkills.slice(start, end);
+  }, [filteredSkills, currentPage]);
+
+  const startItem = filteredSkills.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, filteredSkills.length);
 
   const getCategoryLabel = (category: SkillCategory) => {
     switch (category) {
@@ -184,14 +203,17 @@ export default function SkillsManagementPage() {
       </div>
 
       <div className="content-card">
-        <div className="toolbar">
-          <input
-            type="text"
-            placeholder="Search by name, category, or description..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="search-input"
-          />
+        <div className="skills-toolbar">
+          <div className="search-box">
+            <span className="search-icon">⌕</span>
+            <input
+              type="text"
+              placeholder="Search by name, category, or description..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="search-input clean-search-input"
+            />
+          </div>
         </div>
 
         {error && (
@@ -229,7 +251,7 @@ export default function SkillsManagementPage() {
                   </td>
                 </tr>
               ) : (
-                filteredSkills.map((skill) => (
+                paginatedSkills.map((skill) => (
                   <tr key={skill._id}>
                     <td className="cell-title">{skill.name}</td>
                     <td>
@@ -241,7 +263,7 @@ export default function SkillsManagementPage() {
                     <td className="text-center">
                       <button
                         type="button"
-                        className="danger-outline-btn"
+                        className="table-action-btn"
                         onClick={() => handleDelete(skill._id)}
                       >
                         Delete
@@ -256,8 +278,41 @@ export default function SkillsManagementPage() {
 
         <div className="table-footer">
           <span>
-            Showing 1 to {filteredSkills.length} of {filteredSkills.length} skills
+            Showing {startItem} to {endItem} of {filteredSkills.length} skills
           </span>
+
+          {filteredSkills.length > 0 && (
+            <div className="pagination">
+              <button
+                type="button"
+                className="pagination-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((prev) => prev - 1)}
+              >
+                Previous
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                className="pagination-btn"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((prev) => prev + 1)}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

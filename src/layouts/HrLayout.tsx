@@ -25,7 +25,7 @@ export default function HrLayout() {
       subtitle="Employees, skills, and recommendations"
       profilePath="/hr/profile"
       nav={[
-        { to: "/hr/blank", label: "Dashboard" },
+        { to: "/hr/dashboard", label: "Dashboard" },
         { to: "/hr/employees", label: "Employee Management" },
         { to: "/hr/activities", label: "Activity Management", end: true },
 

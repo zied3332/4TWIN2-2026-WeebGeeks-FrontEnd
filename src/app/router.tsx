@@ -35,6 +35,9 @@ import MySkillsPage from "../pages/employee/skills/MySkillsPage";
 import Blank from "../pages/Blank";
 import Profile from "../pages/profile/Profile";
 
+import NotificationsPage from '../pages/notifications/NotificationsPage';
+import HrDashboard from "../pages/hr/Dashboard.tsx";
+
 type Role = "HR" | "MANAGER" | "EMPLOYEE";
 
 function getRole(): Role | null {
@@ -101,7 +104,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Blank /> },
           { path: "blank", element: <Blank /> },
 
-          { path: "dashboard", element: <Blank /> },
+          { path: "dashboard", element: <HrDashboard /> },
           { path: "employees", element: <HrEmployees /> },
           { path: "activities", element: <HrActivitiesManagement /> },
           { path: "employees/:id", element: <Blank /> },
@@ -164,5 +167,10 @@ export const router = createBrowserRouter([
       },
     ],
   },
+  {
+  path: '/notifications',
+  element: <NotificationsPage />,
+},
   { path: "*", element: <Navigate to="/" replace /> },
+  
 ]);

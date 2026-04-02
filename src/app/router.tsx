@@ -27,6 +27,7 @@ import ManagerActivities from "../pages/manger/ManagerActivities.tsx";
 
 // Employee pages
 import MyActivities from "../pages/employee/MyActivities";
+import AppliedActivities from "../pages/employee/AppliedActivities";
 import Recommendations from "../pages/employee/Recommendations";
 import History from "../pages/employee/History";
 import CvUpload from "../pages/employee/CvUpload";
@@ -37,6 +38,7 @@ import Profile from "../pages/profile/Profile";
 
 import NotificationsPage from '../pages/notifications/NotificationsPage';
 import HrDashboard from "../pages/hr/Dashboard.tsx";
+import ActivityApplications from "../pages/hr/ActivityApplications";
 
 type Role = "HR" | "MANAGER" | "EMPLOYEE";
 
@@ -77,6 +79,14 @@ function Forbidden() {
   );
 }
 
+function NotificationsRedirect() {
+  const role = getRole();
+  if (role === "HR") return <Navigate to="/hr/notifications" replace />;
+  if (role === "MANAGER") return <Navigate to="/manager/notifications" replace />;
+  if (role === "EMPLOYEE") return <Navigate to="/me/notifications" replace />;
+  return <Navigate to="/auth/login" replace />;
+}
+
 export const router = createBrowserRouter([
   { path: "/", element: <Navigate to="/auth/login" replace /> },
   { path: "/403", element: <Forbidden /> },
@@ -107,6 +117,7 @@ export const router = createBrowserRouter([
           { path: "dashboard", element: <HrDashboard /> },
           { path: "employees", element: <HrEmployees /> },
           { path: "activities", element: <HrActivitiesManagement /> },
+          { path: "activity-applications", element: <ActivityApplications /> },
           { path: "employees/:id", element: <Blank /> },
           { path: "skills-dashboard", element: <HrSkillsDashboard /> },
           { path: "recommendations", element: <HrGenerateRecommendations /> },
@@ -118,6 +129,7 @@ export const router = createBrowserRouter([
           { path: "skills/assign", element: <AssignSkillPage /> },
 
           { path: "profile", element: <Profile /> },
+          { path: "notifications", element: <NotificationsPage /> },
         ],
       },
     ],
@@ -141,6 +153,7 @@ export const router = createBrowserRouter([
           { path: "team", element: <ManagerTeam /> },
           { path: "profile", element: <Profile /> },
             { path: "activities", element: <ManagerActivities /> },
+          { path: "notifications", element: <NotificationsPage /> },
         ],
       },
     ],
@@ -159,18 +172,20 @@ export const router = createBrowserRouter([
 
           { path: "profile", element: <Profile /> },
           { path: "activities", element: <MyActivities /> },
+          { path: "applications", element: <AppliedActivities /> },
           { path: "recommendations", element: <Recommendations /> },
           { path: "history", element: <History /> },
           { path: "cv", element: <CvUpload /> },
           { path: "skills", element: <MySkillsPage /> },
+          { path: "notifications", element: <NotificationsPage /> },
         ],
       },
     ],
   },
   {
-  path: '/notifications',
-  element: <NotificationsPage />,
-},
+    path: '/notifications',
+    element: <NotificationsRedirect />,
+  },
   { path: "*", element: <Navigate to="/" replace /> },
   
 ]);

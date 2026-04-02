@@ -30,9 +30,11 @@ export default function EmployeeLayout() {
       profilePath="/me/profile"
       nav={[
         { to: "/me/activities", label: "My Activities" },
+        { to: "/me/applications", label: "My Applications" },
         { to: "/me/recommendations", label: "Recommendations" },
         { to: "/me/history", label: "History" },
         { to: "/me/skills", label: "My Skills" },
+        { to: "/me/notifications", label: "Notifications" },
       ]}
       topbarRight={
         <div className="topbar-actions">

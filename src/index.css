@@ -1940,6 +1940,12 @@ a { color: inherit; }
   gap: 12px;
 }
 
+.notifications-page-shell {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 .notifications-page-item {
   border: 1px solid #e5e7eb;
   background: #fff;
@@ -1948,6 +1954,7 @@ a { color: inherit; }
   text-align: left;
   cursor: pointer;
   width: 100%;
+  max-width: 100%;
 }
 
 .notifications-page-item:hover {
@@ -2038,6 +2045,7 @@ a { color: inherit; }
   margin: 0;
   color: #627067;
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .notifications-page-meta {

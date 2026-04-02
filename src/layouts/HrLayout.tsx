@@ -28,6 +28,7 @@ export default function HrLayout() {
         { to: "/hr/dashboard", label: "Dashboard" },
         { to: "/hr/employees", label: "Employee Management" },
         { to: "/hr/activities", label: "Activity Management", end: true },
+        { to: "/hr/activity-applications", label: "Activity Applications", end: true },
 
         // ✅ UPDATED SKILLS LINKS
         { to: "/hr/skills", label: "Skills Management", end: true },
@@ -36,6 +37,7 @@ export default function HrLayout() {
         { to: "/hr/recommendations", label: "Recommendations" },
         { to: "/hr/departments", label: "Departments Management" },
         { to: "/hr/users", label: "User Management" },
+        { to: "/hr/notifications", label: "Notifications" },
       ]}
       topbarRight={
         <input className="input" placeholder="Search employees, skills…" />

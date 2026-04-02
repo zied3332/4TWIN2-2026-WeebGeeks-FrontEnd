@@ -4,8 +4,10 @@ import {
   listActivities,
   getActivitySkills,
   enrollInActivity,
+  getActivityParticipations,
   type ActivityRecord,
   type ActivitySkillRecord,
+  type ParticipationStatus,
 } from "../../services/activities.service";
 const card: React.CSSProperties = {
   background: "white",
@@ -59,6 +61,9 @@ export default function MyActivities() {
   const [error, setError] = useState("");
   const [enrolling, setEnrolling] = useState<string | null>(null);
   const [enrollSuccess, setEnrollSuccess] = useState("");
+  const [applicationStatusByActivity, setApplicationStatusByActivity] = useState<
+    Record<string, ParticipationStatus | undefined>
+  >({});
 
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecord | null>(null);
   const [activitySkills, setActivitySkills] = useState<ActivitySkillRecord[]>([]);
@@ -102,6 +107,39 @@ export default function MyActivities() {
     );
   }, [activities, myDepartmentId]);
 
+  const currentEmployeeId = useMemo(() => {
+    return (
+      String(currentUser?.employeeId || "") ||
+      String(currentUser?._id || "") ||
+      String(currentUser?.id || "")
+    );
+  }, [currentUser]);
+
+  useEffect(() => {
+    const loadOwnStatuses = async () => {
+      if (!currentEmployeeId || !departmentActivities.length) {
+        setApplicationStatusByActivity({});
+        return;
+      }
+
+      const entries = await Promise.all(
+        departmentActivities.map(async (activity) => {
+          try {
+            const participations = await getActivityParticipations(activity._id);
+            const own = participations.find((row) => row.employeeId === currentEmployeeId);
+            return [activity._id, own?.status] as const;
+          } catch {
+            return [activity._id, undefined] as const;
+          }
+        })
+      );
+
+      setApplicationStatusByActivity(Object.fromEntries(entries));
+    };
+
+    void loadOwnStatuses();
+  }, [departmentActivities, currentEmployeeId]);
+
   const openActivityDetails = useCallback(async (activity: ActivityRecord) => {
     setSelectedActivity(activity);
     try {
@@ -122,14 +160,6 @@ export default function MyActivities() {
     }
   }, [location.search, navigate]);
 
-  const currentEmployeeId = useMemo(() => {
-    return (
-      String(currentUser?.employeeId || "") ||
-      String(currentUser?._id || "") ||
-      String(currentUser?.id || "")
-    );
-  }, [currentUser]);
-
   const handleEnroll = async (activityId: string) => {
     if (enrolling === activityId) return;
     setEnrolling(activityId);
@@ -141,11 +171,12 @@ export default function MyActivities() {
         response?.message || response?.statusMessage || ""
       ).trim();
 
-      setEnrollSuccess(apiMessage || "Enrollment request submitted successfully.");
+      setApplicationStatusByActivity((prev) => ({ ...prev, [activityId]: "ENROLLED" }));
+      setEnrollSuccess(apiMessage || "Application submitted successfully.");
       setTimeout(() => setEnrollSuccess(""), 3000);
     } catch (e: unknown) {
       console.error("Enrollment failed:", e);
-      setError(e instanceof Error ? e.message : "Failed to enroll in activity.");
+      setError(e instanceof Error ? e.message : "Failed to apply for activity.");
     } finally {
       setEnrolling(null);
     }
@@ -183,7 +214,7 @@ export default function MyActivities() {
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ marginBottom: 0 }}>Available Activities</h1>
           <p style={{ color: "#6b7280", marginTop: 4 }}>
-            Browse and enroll in department activities to develop your skills
+            Browse and apply to department activities to develop your skills
           </p>
         </div>
 
@@ -205,7 +236,14 @@ export default function MyActivities() {
           </div>
         ) : (
           <div style={{ display: "grid", gap: 16 }}>
-            {departmentActivities.map((activity) => (
+            {departmentActivities.map((activity) => {
+              const status = applicationStatusByActivity[activity._id];
+              const waiting = status === "ENROLLED";
+              const accepted = status === "APPROVED";
+              const denied = status === "REJECTED";
+              const applied = !!status;
+
+              return (
               <div
                 key={activity._id}
                 style={{
@@ -259,19 +297,48 @@ export default function MyActivities() {
                 </div>
 
                 <div style={{ display: "flex", gap: 8, flexDirection: "column", minWidth: 150 }}>
+                  {applied && (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        borderRadius: 999,
+                        padding: "6px 10px",
+                        fontWeight: 800,
+                        fontSize: 12,
+                        background: waiting
+                          ? "rgba(245,158,11,0.14)"
+                          : accepted
+                          ? "rgba(22,163,74,0.12)"
+                          : denied
+                          ? "rgba(239,68,68,0.12)"
+                          : "rgba(100,116,139,0.12)",
+                        color: waiting ? "#92400e" : accepted ? "#166534" : denied ? "#991b1b" : "#334155",
+                        border: waiting
+                          ? "1px solid rgba(245,158,11,0.3)"
+                          : accepted
+                          ? "1px solid rgba(22,163,74,0.3)"
+                          : denied
+                          ? "1px solid rgba(239,68,68,0.3)"
+                          : "1px solid rgba(100,116,139,0.3)",
+                      }}
+                    >
+                      {waiting ? "Waiting" : accepted ? "Accepted" : denied ? "Denied" : status}
+                    </div>
+                  )}
                   <button style={{ ...btn }} onClick={() => openActivityDetails(activity)}>
                     View Details
                   </button>
                   <button
                     style={{ ...btnGreen }}
-                    disabled={enrolling === activity._id}
+                    disabled={enrolling === activity._id || applied}
                     onClick={() => handleEnroll(activity._id)}
                   >
-                    {enrolling === activity._id ? "Enrolling..." : "Enroll Now"}
+                    {enrolling === activity._id ? "Applying..." : applied ? "Applied" : "Apply Now"}
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -382,13 +449,17 @@ export default function MyActivities() {
                 </button>
                 <button
                   style={{ ...btnGreen, flex: 1 }}
-                  disabled={enrolling === selectedActivity._id}
+                  disabled={enrolling === selectedActivity._id || !!applicationStatusByActivity[selectedActivity._id]}
                   onClick={() => {
                     handleEnroll(selectedActivity._id);
                     closeActivityDetails();
                   }}
                 >
-                  {enrolling === selectedActivity._id ? "Enrolling..." : "Enroll Now"}
+                  {enrolling === selectedActivity._id
+                    ? "Applying..."
+                    : applicationStatusByActivity[selectedActivity._id]
+                    ? "Applied"
+                    : "Apply Now"}
                 </button>
               </div>
             </div>

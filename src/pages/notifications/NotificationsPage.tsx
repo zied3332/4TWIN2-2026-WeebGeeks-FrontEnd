@@ -145,7 +145,8 @@ export default function NotificationsPage() {
   );
 
   return (
-    <div>
+    <div className="page notifications-page-shell">
+      <div className="container">
       <div className="section-head" style={{ marginBottom: 12 }}>
         <div>
           <div className="header-title" style={{ fontSize: 26 }}>
@@ -335,6 +336,7 @@ export default function NotificationsPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

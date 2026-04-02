@@ -7,6 +7,21 @@ type Props = {
   onClose: () => void;
 };
 
+function getNotificationsPath() {
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return '/notifications';
+    const user = JSON.parse(raw);
+    const role = String(user?.role || '').toUpperCase();
+    if (role === 'HR') return '/hr/notifications';
+    if (role === 'MANAGER') return '/manager/notifications';
+    if (role === 'EMPLOYEE') return '/me/notifications';
+    return '/notifications';
+  } catch {
+    return '/notifications';
+  }
+}
+
 export default function NotificationDropdown({ onClose }: Props) {
   const navigate = useNavigate();
   const {
@@ -26,7 +41,7 @@ export default function NotificationDropdown({ onClose }: Props) {
     if (notification.link) {
       navigate(notification.link);
     } else {
-      navigate('/notifications');
+      navigate(getNotificationsPath());
     }
   };
 
@@ -71,7 +86,7 @@ export default function NotificationDropdown({ onClose }: Props) {
           className="view-all-btn"
           onClick={() => {
             onClose();
-            navigate('/notifications');
+            navigate(getNotificationsPath());
           }}
         >
           View all notifications

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../hooks/useNotifications';
 import type { AppNotification } from '../../types/notification';
@@ -6,24 +6,47 @@ import type { AppNotification } from '../../types/notification';
 type FilterType = 'ALL' | 'UNREAD' | 'READ';
 
 function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleString();
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
 }
 
 function formatRelativeDate(dateString: string) {
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
+
   const now = new Date();
-  const diff = now.getTime() - date.getTime();
+  const diffMs = date.getTime() - now.getTime();
 
-  const minutes = Math.floor(diff / (1000 * 60));
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+  const seconds = Math.round(diffMs / 1000);
+  const minutes = Math.round(diffMs / (1000 * 60));
+  const hours = Math.round(diffMs / (1000 * 60 * 60));
+  const days = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes} min ago`;
-  if (hours < 24) return `${hours} h ago`;
-  if (days < 7) return `${days} d ago`;
+  if (Math.abs(seconds) < 60) return rtf.format(seconds, 'second');
+  if (Math.abs(minutes) < 60) return rtf.format(minutes, 'minute');
+  if (Math.abs(hours) < 24) return rtf.format(hours, 'hour');
+  if (Math.abs(days) < 7) return rtf.format(days, 'day');
 
-  return date.toLocaleDateString();
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date);
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function matchesFilter(item: AppNotification, filter: FilterType) {
+  if (filter === 'UNREAD') return !item.isRead;
+  if (filter === 'READ') return item.isRead;
+  return true;
 }
 
 function getTypeBadgeClass(type: string) {
@@ -42,8 +65,10 @@ function getTypeBadgeClass(type: string) {
       return 'badge badge-low';
     case 'ACTIVITY_ASSIGNED':
       return 'badge badge-high';
+    case 'GENERAL':
+      return 'badge badge-neutral';
     default:
-      return 'badge';
+      return 'badge badge-neutral';
   }
 }
 
@@ -58,69 +83,94 @@ export default function NotificationsPage() {
 
   const [filter, setFilter] = useState<FilterType>('ALL');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [showAllUnread, setShowAllUnread] = useState(false);
+  const [showAllRead, setShowAllRead] = useState(false);
 
-  const unreadCount = useMemo(
-    () => notifications.filter((item) => !item.isRead).length,
-    [notifications]
-  );
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 200);
+    return () => clearTimeout(timeout);
+  }, [search]);
 
-  const readCount = useMemo(
-    () => notifications.filter((item) => item.isRead).length,
-    [notifications]
-  );
+  const {
+    unreadCount,
+    readCount,
+    todayCount,
+    filteredNotifications,
+    unreadNotifications,
+    readNotifications,
+  } = useMemo(() => {
+    const query = normalizeText(debouncedSearch);
+    const todayKey = new Date().toDateString();
 
-  const todayCount = useMemo(() => {
-    const today = new Date().toDateString();
-    return notifications.filter(
-      (item) => new Date(item.createdAt).toDateString() === today
-    ).length;
-  }, [notifications]);
+    let unread = 0;
+    let read = 0;
+    let today = 0;
+    const filtered: AppNotification[] = [];
 
-  const filteredNotifications = useMemo(() => {
-    let result = [...notifications];
+    for (const item of notifications) {
+      if (item.isRead) read += 1;
+      else unread += 1;
 
-    if (filter === 'UNREAD') {
-      result = result.filter((item) => !item.isRead);
-    } else if (filter === 'READ') {
-      result = result.filter((item) => item.isRead);
+      const created = new Date(item.createdAt);
+      if (!Number.isNaN(created.getTime()) && created.toDateString() === todayKey) {
+        today += 1;
+      }
+
+      if (!matchesFilter(item, filter)) continue;
+      if (query) {
+        const haystack = normalizeText(`${item.title} ${item.message} ${item.type}`);
+        if (!haystack.includes(query)) continue;
+      }
+
+      filtered.push(item);
     }
 
-    const q = search.trim().toLowerCase();
-    if (q) {
-      result = result.filter((item) => {
-        return (
-          item.title.toLowerCase().includes(q) ||
-          item.message.toLowerCase().includes(q) ||
-          item.type.toLowerCase().includes(q)
-        );
-      });
-    }
-
-    return result.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    filtered.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [notifications, filter, search]);
 
-  const unreadNotifications = filteredNotifications.filter((item) => !item.isRead);
-  const readNotifications = filteredNotifications.filter((item) => item.isRead);
+    const unreadTop: AppNotification[] = [];
+    const readTop: AppNotification[] = [];
+    for (const item of filtered) {
+      if (!item.isRead) unreadTop.push(item);
+      else readTop.push(item);
+    }
 
-  const handleClick = async (notification: AppNotification) => {
+    return {
+      unreadCount: unread,
+      readCount: read,
+      todayCount: today,
+      filteredNotifications: filtered,
+      unreadNotifications: unreadTop,
+      readNotifications: readTop,
+    };
+  }, [notifications, filter, debouncedSearch]);
+
+  const handleClick = useCallback(async (notification: AppNotification) => {
     if (!notification.isRead) {
-      await markOneAsRead(notification._id);
+      void markOneAsRead(notification._id);
     }
 
     if (notification.link) {
       navigate(notification.link);
     }
-  };
+  }, [markOneAsRead, navigate]);
 
-  const renderNotificationCard = (notification: AppNotification) => (
+  const unreadTopFive = useMemo(() => unreadNotifications.slice(0, 5), [unreadNotifications]);
+  const readTopFive = useMemo(() => readNotifications.slice(0, 5), [readNotifications]);
+  const unreadSideList = showAllUnread ? unreadNotifications : unreadTopFive;
+  const readSideList = showAllRead ? readNotifications : readTopFive;
+
+  const renderNotificationCard = useCallback((notification: AppNotification) => (
     <button
       key={notification._id}
       type="button"
       className={`notifications-page-item ${notification.isRead ? '' : 'unread'}`}
       onClick={() => handleClick(notification)}
+      aria-label={`Notification: ${notification.title}. ${notification.isRead ? 'Read' : 'Unread'}`}
     >
       <div className="notifications-page-item-top">
         <div>
@@ -134,7 +184,7 @@ export default function NotificationsPage() {
           <p>{notification.message}</p>
         </div>
 
-        {!notification.isRead && <span className="notification-dot" />}
+        {!notification.isRead && <span className="notification-dot" aria-hidden="true" />}
       </div>
 
       <div className="notifications-page-meta">
@@ -142,7 +192,7 @@ export default function NotificationsPage() {
         <span>{formatDate(notification.createdAt)}</span>
       </div>
     </button>
-  );
+  ), [handleClick]);
 
   return (
     <div className="page notifications-page-shell">
@@ -154,6 +204,9 @@ export default function NotificationsPage() {
           </div>
           <div className="muted" style={{ marginTop: 4 }}>
             Stay updated with requests, approvals, skill changes, and activity alerts.
+          </div>
+          <div className="sr-only" aria-live="polite">
+            You have {unreadCount} unread notifications.
           </div>
         </div>
 
@@ -196,11 +249,14 @@ export default function NotificationsPage() {
               <span className="muted">{filteredNotifications.length} items</span>
             </div>
 
-            <div className="tabs" style={{ marginBottom: 14 }}>
+            <div className="tabs" style={{ marginBottom: 14 }} role="tablist" aria-label="Notification filters">
               <button
                 className={`tab ${filter === 'ALL' ? 'active' : ''}`}
                 type="button"
                 onClick={() => setFilter('ALL')}
+                role="tab"
+                aria-selected={filter === 'ALL'}
+                aria-controls="notifications-feed"
               >
                 All
               </button>
@@ -208,6 +264,9 @@ export default function NotificationsPage() {
                 className={`tab ${filter === 'UNREAD' ? 'active' : ''}`}
                 type="button"
                 onClick={() => setFilter('UNREAD')}
+                role="tab"
+                aria-selected={filter === 'UNREAD'}
+                aria-controls="notifications-feed"
               >
                 Unread
               </button>
@@ -215,6 +274,9 @@ export default function NotificationsPage() {
                 className={`tab ${filter === 'READ' ? 'active' : ''}`}
                 type="button"
                 onClick={() => setFilter('READ')}
+                role="tab"
+                aria-selected={filter === 'READ'}
+                aria-controls="notifications-feed"
               >
                 Read
               </button>
@@ -239,6 +301,7 @@ export default function NotificationsPage() {
               <div className="empty-state">No notifications available.</div>
             ) : (
               <div className="notifications-page-list">
+                <div id="notifications-feed" className="sr-only" />
                 {filteredNotifications.map(renderNotificationCard)}
               </div>
             )}
@@ -258,20 +321,32 @@ export default function NotificationsPage() {
               <div className="notification-empty">No unread notifications.</div>
             ) : (
               <div className="stack">
-                {unreadNotifications.slice(0, 5).map((item) => (
+                {unreadSideList.map((item) => (
                   <button
                     key={item._id}
                     type="button"
                     className="history-item notification-side-item"
                     onClick={() => handleClick(item)}
+                    aria-label={`Unread notification: ${item.title}`}
                   >
                     <div>
                       <div className="history-title">{item.title}</div>
                       <div className="history-date">{formatRelativeDate(item.createdAt)}</div>
                     </div>
-                    <span className="notification-dot" />
+                    <span className="notification-dot" aria-hidden="true" />
                   </button>
                 ))}
+                {unreadNotifications.length > 5 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-small"
+                    onClick={() => setShowAllUnread((prev) => !prev)}
+                    aria-pressed={showAllUnread}
+                    aria-label={showAllUnread ? 'Show fewer unread notifications' : 'Show all unread notifications'}
+                  >
+                    {showAllUnread ? 'See less' : `See more (${unreadNotifications.length - 5})`}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -288,12 +363,13 @@ export default function NotificationsPage() {
               <div className="notification-empty">No read notifications yet.</div>
             ) : (
               <div className="stack">
-                {readNotifications.slice(0, 5).map((item) => (
+                {readSideList.map((item) => (
                   <button
                     key={item._id}
                     type="button"
                     className="history-item notification-side-item"
                     onClick={() => handleClick(item)}
+                    aria-label={`Read notification: ${item.title}`}
                   >
                     <div>
                       <div className="history-title">{item.title}</div>
@@ -304,6 +380,17 @@ export default function NotificationsPage() {
                     </span>
                   </button>
                 ))}
+                {readNotifications.length > 5 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-small"
+                    onClick={() => setShowAllRead((prev) => !prev)}
+                    aria-pressed={showAllRead}
+                    aria-label={showAllRead ? 'Show fewer read notifications' : 'Show all read notifications'}
+                  >
+                    {showAllRead ? 'See less' : `See more (${readNotifications.length - 5})`}
+                  </button>
+                )}
               </div>
             )}
           </div>

@@ -3,15 +3,19 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
+import { io, type Socket } from 'socket.io-client';
 import type { AppNotification } from '../types/notification';
 import {
   getMyNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from '../services/notifications.service';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 type NotificationContextType = {
   notifications: AppNotification[];
@@ -33,33 +37,51 @@ type Props = {
 export function NotificationProvider({ children }: Props) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(false);
+  const activeFetchControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      activeFetchControllerRef.current?.abort();
+    };
+  }, []);
 
   const refreshNotifications = useCallback(async () => {
+    activeFetchControllerRef.current?.abort();
+    const controller = new AbortController();
+    activeFetchControllerRef.current = controller;
+
     try {
       setLoading(true);
-      const data = await getMyNotifications();
+      const data = await getMyNotifications(controller.signal);
+      if (controller.signal.aborted) return;
       setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
+      if (controller.signal.aborted) return;
       console.error('Failed to fetch notifications:', error);
       setNotifications([]);
     } finally {
+      if (controller.signal.aborted) return;
       setLoading(false);
+      if (activeFetchControllerRef.current === controller) {
+        activeFetchControllerRef.current = null;
+      }
     }
   }, []);
 
   const markOneAsRead = useCallback(async (notificationId: string) => {
+    setNotifications((prev) =>
+      prev.map((item) =>
+        item._id === notificationId ? { ...item, isRead: true } : item
+      )
+    );
+
     try {
       await markNotificationAsRead(notificationId);
-
-      setNotifications((prev) =>
-        prev.map((item) =>
-          item._id === notificationId ? { ...item, isRead: true } : item
-        )
-      );
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
+      await refreshNotifications();
     }
-  }, []);
+  }, [refreshNotifications]);
 
   const markEverythingAsRead = useCallback(async () => {
     try {
@@ -82,6 +104,34 @@ export function NotificationProvider({ children }: Props) {
 
     return () => clearInterval(interval);
   }, [refreshNotifications]);
+
+  useEffect(() => {
+    const token = (localStorage.getItem('token') || localStorage.getItem('access_token') || '')
+      .replace(/^Bearer\s+/i, '')
+      .trim();
+    if (!token) return;
+
+    const socket: Socket = io(`${API_URL}/notifications`, {
+      transports: ['websocket'],
+      auth: { token },
+      withCredentials: true,
+    });
+
+    const onNewNotification = (payload: AppNotification) => {
+      setNotifications((prev) => {
+        const exists = prev.some((item) => item._id === payload._id);
+        if (exists) return prev;
+        return [payload, ...prev];
+      });
+    };
+
+    socket.on('notification:new', onNewNotification);
+
+    return () => {
+      socket.off('notification:new', onNewNotification);
+      socket.disconnect();
+    };
+  }, []);
 
   const unreadCount = useMemo(() => {
     return notifications.filter((item) => !item.isRead).length;

@@ -24,6 +24,7 @@ import AssignSkillPage from "../pages/hr/skills/AssignSkillPage";
 // Manager pages
 import ManagerTeam from "../pages/manger/ManagerTeam";
 import ManagerActivities from "../pages/manger/ManagerActivities.tsx";
+import ManagerApprovals from "../pages/manger/Approvals";
 
 // Employee pages
 import MyActivities from "../pages/employee/MyActivities";
@@ -147,7 +148,7 @@ export const router = createBrowserRouter([
           { path: "blank", element: <Blank /> },
 
           { path: "dashboard", element: <Blank /> },
-          { path: "approvals", element: <Blank /> },
+          { path: "approvals", element: <ManagerApprovals /> },
           { path: "analytics", element: <Blank /> },
 
           { path: "team", element: <ManagerTeam /> },

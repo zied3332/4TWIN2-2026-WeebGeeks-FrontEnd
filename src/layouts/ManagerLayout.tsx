@@ -26,10 +26,11 @@ export default function ManagerLayout() {
       profilePath="/manager/profile"
       nav={[
         { to: "/manager/blank", label: "Dashboard" },
-        { to: "/manager/blank", label: "Approvals" },
+        { to: "/manager/approvals", label: "Approvals" },
         { to: "/manager/team", label: "My Team" },
           { to: "/manager/activities", label: "Activities" },
         { to: "/manager/blank", label: "Analytics" },
+        { to: "/manager/notifications", label: "Notifications" },
       ]}
       topbarRight={
         <>

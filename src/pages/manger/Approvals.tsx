@@ -1,167 +1,212 @@
-import React, { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  getActivityParticipations,
+  listActivities,
+  updateParticipationStatus,
+  type ActivityParticipationRecord,
+  type ActivityRecord,
+} from "../../services/activities.service";
 
-type Activity = {
-  id: string;
-  title: string;
-  department: string;
-  seats: number;
-  createdAt: string;
+type Row = {
+  activity: ActivityRecord;
+  participation: ActivityParticipationRecord;
 };
 
-type TopEmployee = {
-  id: string;
-  name: string;
-  role: string;
-  score: number;
-  skillMatch: number;
-  contextBoost: number;
+const card: CSSProperties = {
+  background: "white",
+  border: "1px solid #eaecef",
+  borderRadius: 12,
+  padding: 16,
 };
 
-export default function ActivityResults() {
-  const activities: Activity[] = useMemo(
-    () => [
-      { id: "A1", title: "Advanced React Training", department: "IT", seats: 5, createdAt: "2026-02-10" },
-      { id: "A2", title: "Cloud Architecture Bootcamp", department: "Engineering", seats: 8, createdAt: "2026-02-08" },
-      { id: "A3", title: "Leadership & Communication", department: "HR", seats: 12, createdAt: "2026-02-06" },
-    ],
-    []
-  );
+const btn: CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: 10,
+  border: "1px solid #eaecef",
+  background: "white",
+  fontWeight: 800,
+  cursor: "pointer",
+};
 
-  // Fake results per activity
-  const resultsMap: Record<string, TopEmployee[]> = useMemo(
-    () => ({
-      A1: [
-        { id: "E1", name: "John Doe", role: "Lead Software Engineer", score: 92, skillMatch: 88, contextBoost: 4 },
-        { id: "E2", name: "Sarah Anderson", role: "Frontend Developer", score: 89, skillMatch: 86, contextBoost: 3 },
-        { id: "E3", name: "Mark Smith", role: "Fullstack Engineer", score: 87, skillMatch: 84, contextBoost: 2 },
-        { id: "E4", name: "Alice Smith", role: "Backend Developer", score: 85, skillMatch: 80, contextBoost: 5 },
-        { id: "E5", name: "Nour Ben Ali", role: "Software Engineer", score: 83, skillMatch: 79, contextBoost: 1 },
-      ],
-      A2: [
-        { id: "E6", name: "Omar Trabelsi", role: "DevOps Engineer", score: 93, skillMatch: 90, contextBoost: 3 },
-        { id: "E7", name: "Yahya Khemiri", role: "Cloud Engineer", score: 90, skillMatch: 88, contextBoost: 2 },
-        { id: "E8", name: "Amira Jebali", role: "Backend Engineer", score: 86, skillMatch: 82, contextBoost: 4 },
-        { id: "E9", name: "Rami Gharbi", role: "SRE", score: 84, skillMatch: 80, contextBoost: 1 },
-        { id: "E10", name: "Khalil Hajji", role: "System Engineer", score: 82, skillMatch: 78, contextBoost: 2 },
-      ],
-      A3: [
-        { id: "E11", name: "Ines M.", role: "HR Specialist", score: 91, skillMatch: 89, contextBoost: 2 },
-        { id: "E12", name: "Hedi S.", role: "Team Lead", score: 88, skillMatch: 84, contextBoost: 4 },
-        { id: "E13", name: "Sana A.", role: "Project Manager", score: 86, skillMatch: 82, contextBoost: 3 },
-        { id: "E14", name: "Mehdi K.", role: "Scrum Master", score: 83, skillMatch: 80, contextBoost: 1 },
-        { id: "E15", name: "Farah B.", role: "Business Analyst", score: 81, skillMatch: 77, contextBoost: 2 },
-      ],
-    }),
-    []
-  );
+export default function ManagerApprovals() {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [busyKey, setBusyKey] = useState("");
 
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<Activity | null>(null);
+  const me = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("user");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }, []);
 
-  const top5 = selected ? resultsMap[selected.id] ?? [] : [];
+  const managerDepartmentId = useMemo(() => String(me?.department || ""), [me]);
 
-  const openModal = (a: Activity) => {
-    setSelected(a);
-    setOpen(true);
+  const pending = useMemo(() => rows.filter((r) => r.participation.status === "ENROLLED"), [rows]);
+  const accepted = useMemo(() => rows.filter((r) => r.participation.status === "APPROVED"), [rows]);
+  const denied = useMemo(() => rows.filter((r) => r.participation.status === "REJECTED"), [rows]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const activities = await listActivities();
+        const deptActivities = activities.filter((a) => String(a.departmentId || "") === managerDepartmentId);
+
+        const settled = await Promise.allSettled(
+          deptActivities.map(async (activity) => {
+            const participations = await getActivityParticipations(activity._id, "ALL");
+            return participations.map((p) => ({ activity, participation: p } as Row));
+          }),
+        );
+
+        const collected = settled
+          .filter((x): x is PromiseFulfilledResult<Row[]> => x.status === "fulfilled")
+          .flatMap((x) => x.value)
+          .sort((a, b) => {
+            const aTime = new Date(a.participation.createdAt || 0).getTime();
+            const bTime = new Date(b.participation.createdAt || 0).getTime();
+            return bTime - aTime;
+          });
+
+        setRows(collected);
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Failed to load approvals.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (managerDepartmentId) {
+      void load();
+    } else {
+      setLoading(false);
+      setRows([]);
+      setError("Your manager account has no department assigned.");
+    }
+  }, [managerDepartmentId]);
+
+  const decide = async (activityId: string, employeeId: string, decision: "APPROVED" | "REJECTED") => {
+    const key = `${activityId}:${employeeId}:${decision}`;
+    setBusyKey(key);
+    setError("");
+    try {
+      await updateParticipationStatus(activityId, employeeId, decision);
+      setRows((prev) =>
+        prev.map((row) => {
+          if (row.activity._id !== activityId) return row;
+          if (row.participation.employeeId !== employeeId) return row;
+          return {
+            ...row,
+            participation: {
+              ...row.participation,
+              status: decision,
+            },
+          };
+        }),
+      );
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to update request.");
+    } finally {
+      setBusyKey("");
+    }
   };
 
-  const closeModal = () => {
-    setOpen(false);
-    setSelected(null);
+  const renderRows = (list: Row[], canDecide: boolean) => {
+    if (!list.length) {
+      return (
+        <div style={{ ...card, textAlign: "center", color: "#64748b" }}>
+          No requests in this status.
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: "grid", gap: 12 }}>
+        {list.map((row) => {
+          const employee = row.participation.employee;
+          const employeeName = String(employee?.name || row.participation.employeeId || "Employee");
+          const employeeEmail = String(employee?.email || "");
+          const approveKey = `${row.activity._id}:${row.participation.employeeId}:APPROVED`;
+          const rejectKey = `${row.activity._id}:${row.participation.employeeId}:REJECTED`;
+
+          return (
+            <div key={`${row.activity._id}-${row.participation.employeeId}`} style={card}>
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ fontWeight: 900, color: "#0f172a" }}>{row.activity.title}</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>{row.activity.type} • {row.activity.location}</div>
+                <div style={{ padding: 12, borderRadius: 10, background: "#f8fafc", border: "1px solid #e5e7eb" }}>
+                  <div style={{ fontWeight: 800, color: "#0f172a" }}>{employeeName}</div>
+                  <div style={{ color: "#64748b", marginTop: 2 }}>{employeeEmail || "No email"}</div>
+                </div>
+
+                {canDecide && (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      style={{ ...btn, border: "1px solid rgba(22,163,74,0.35)", color: "#166534", background: "rgba(22,163,74,0.1)" }}
+                      disabled={busyKey === approveKey || busyKey === rejectKey}
+                      onClick={() => decide(row.activity._id, row.participation.employeeId, "APPROVED")}
+                    >
+                      {busyKey === approveKey ? "Accepting..." : "Accept"}
+                    </button>
+                    <button
+                      type="button"
+                      style={{ ...btn, border: "1px solid rgba(239,68,68,0.35)", color: "#991b1b", background: "rgba(239,68,68,0.08)" }}
+                      disabled={busyKey === approveKey || busyKey === rejectKey}
+                      onClick={() => decide(row.activity._id, row.participation.employeeId, "REJECTED")}
+                    >
+                      {busyKey === rejectKey ? "Denying..." : "Deny"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
-    <div>
-      <div className="header-title">Activity Results</div>
-      <div className="header-sub">Open an activity to see the top 5 recommended employees.</div>
-
-      <div className="card section-card" style={{ marginTop: 14 }}>
-        <div className="stack">
-          {activities.map((a) => (
-            <div key={a.id} className="history-item">
-              <div style={{ display: "grid", gap: 4 }}>
-                <div className="history-title">{a.title}</div>
-                <div className="muted">
-                  {a.department} <span className="dot">•</span> Seats: {a.seats} <span className="dot">•</span>{" "}
-                  Created: {a.createdAt}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="btn btn-small btn-primary" onClick={() => openModal(a)}>
-                  View Results
-                </button>
-              </div>
-            </div>
-          ))}
+    <div className="page">
+      <div className="container">
+        <div style={{ marginBottom: 22 }}>
+          <h1 style={{ marginBottom: 0 }}>Approvals</h1>
+          <p style={{ color: "#6b7280", marginTop: 4 }}>
+            Review requests from employees in your department.
+          </p>
         </div>
-      </div>
 
-      {/* Modal */}
-      {open && (
-        <div
-          onClick={closeModal}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15, 23, 42, 0.45)",
-            display: "grid",
-            placeItems: "center",
-            padding: 16,
-            zIndex: 9999,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="card"
-            style={{
-              width: "min(920px, 96vw)",
-              borderRadius: 12,
-              overflow: "hidden",
-            }}
-          >
-            <div style={{ padding: 14, borderBottom: "1px solid #eef2f7", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 14 }}>Top 5 Recommendations</div>
-                <div className="muted" style={{ marginTop: 2 }}>
-                  {selected?.title} — {selected?.department}
-                </div>
-              </div>
-              <button className="btn btn-small btn-ghost" onClick={closeModal}>
-                Close
-              </button>
+        {error && (
+          <div style={{ ...card, background: "#fee2e2", borderColor: "#fca5a5", color: "#991b1b", marginBottom: 14 }}>
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div style={{ ...card, textAlign: "center", color: "#64748b" }}>Loading requests...</div>
+        ) : (
+          <div style={{ display: "grid", gap: 14 }}>
+            <div>
+              <h3 style={{ margin: "4px 0 10px", color: "#92400e" }}>Pending ({pending.length})</h3>
+              {renderRows(pending, true)}
             </div>
-
-            <div style={{ padding: 14 }}>
-              <div style={{ display: "grid", gap: 10 }}>
-                {top5.map((e) => (
-                  <div key={e.id} className="history-item">
-                    <div style={{ display: "grid", gap: 4 }}>
-                      <div className="history-title">{e.name}</div>
-                      <div className="muted">{e.role}</div>
-                      <div className="muted">
-                        Skill match: <b>{e.skillMatch}%</b> <span className="dot">•</span> Context boost:{" "}
-                        <b>{e.contextBoost}</b>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div className="score-value">{e.score}%</div>
-                      <div className="muted" style={{ marginTop: 2 }}>
-                        Overall Score
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 12 }}>
-                <button className="btn btn-ghost">Export</button>
-                <button className="btn btn-primary">Approve Top 5</button>
-              </div>
+            <div>
+              <h3 style={{ margin: "4px 0 10px", color: "#166534" }}>Accepted ({accepted.length})</h3>
+              {renderRows(accepted, false)}
+            </div>
+            <div>
+              <h3 style={{ margin: "4px 0 10px", color: "#991b1b" }}>Denied ({denied.length})</h3>
+              {renderRows(denied, false)}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

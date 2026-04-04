@@ -17,6 +17,12 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+function getAuthToken() {
+  return (localStorage.getItem('token') || localStorage.getItem('access_token') || '')
+    .replace(/^Bearer\s+/i, '')
+    .trim();
+}
+
 type NotificationContextType = {
   notifications: AppNotification[];
   unreadCount: number;
@@ -46,6 +52,13 @@ export function NotificationProvider({ children }: Props) {
   }, []);
 
   const refreshNotifications = useCallback(async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
+
     activeFetchControllerRef.current?.abort();
     const controller = new AbortController();
     activeFetchControllerRef.current = controller;
@@ -57,7 +70,10 @@ export function NotificationProvider({ children }: Props) {
       setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
       if (controller.signal.aborted) return;
-      console.error('Failed to fetch notifications:', error);
+      const status = (error as any)?.response?.status;
+      if (status !== 401) {
+        console.error('Failed to fetch notifications:', error);
+      }
       setNotifications([]);
     } finally {
       if (controller.signal.aborted) return;
@@ -106,9 +122,7 @@ export function NotificationProvider({ children }: Props) {
   }, [refreshNotifications]);
 
   useEffect(() => {
-    const token = (localStorage.getItem('token') || localStorage.getItem('access_token') || '')
-      .replace(/^Bearer\s+/i, '')
-      .trim();
+    const token = getAuthToken();
     if (!token) return;
 
     const socket: Socket = io(`${API_URL}/notifications`, {

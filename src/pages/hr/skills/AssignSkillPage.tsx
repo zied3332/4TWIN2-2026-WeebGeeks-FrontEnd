@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { assignSkill, getAllSkills } from '../../../services/skills.service';
-import axios from 'axios';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { getUsers } from '../../../services/users.service';
 
 type Skill = {
   _id: string;
@@ -50,11 +48,12 @@ export default function AssignSkillPage() {
 
         const [skillsData, employeesRes] = await Promise.all([
           getAllSkills(),
-          axios.get(`${API}/users?role=EMPLOYEE`),
+          getUsers(),
         ]);
 
         setSkills(Array.isArray(skillsData) ? skillsData : []);
-        setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
+        const allUsers = Array.isArray(employeesRes) ? employeesRes : [];
+        setEmployees(allUsers.filter((user) => user?.role === 'EMPLOYEE'));
       } catch (err) {
         console.error(err);
         setError('Failed to load employees and skills.');

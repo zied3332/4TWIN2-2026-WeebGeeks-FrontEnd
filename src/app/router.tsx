@@ -25,11 +25,8 @@ import AssignSkillPage from "../pages/hr/skills/AssignSkillPage";
 // Manager pages
 import ManagerTeam from "../pages/manger/ManagerTeam";
 import ManagerActivities from "../pages/manger/ManagerActivities.tsx";
-import ManagerApprovals from "../pages/manger/Approvals";
 
 // Employee pages
-import MyActivities from "../pages/employee/MyActivities";
-import AppliedActivities from "../pages/employee/AppliedActivities";
 import Recommendations from "../pages/employee/Recommendations";
 import History from "../pages/employee/History";
 import CvUpload from "../pages/employee/CvUpload";
@@ -41,7 +38,6 @@ import Profile from "../pages/profile/Profile";
 import NotificationsPage from '../pages/notifications/NotificationsPage';
 import HrDashboard from "../pages/hr/Dashboard.tsx";
 import HrStatsDashboard from "../pages/hr/HrStatsDashboard";
-import ActivityApplications from "../pages/hr/ActivityApplications";
 import CompleteProfile from "../pages/auth/CompleteProfile";
 
 
@@ -121,8 +117,10 @@ export const router = createBrowserRouter([
           { path: "blank", element: <Blank /> },
 
           { path: "dashboard", element: <HrStatsDashboard /> },
+          { path: "employees", element: <HrEmployees /> },
+          { path: "users", element: <UsersManagement /> },
+          { path: "departments", element: <HrDepartments /> },
           { path: "activities", element: <HrActivitiesManagement /> },
-          { path: "activity-applications", element: <ActivityApplications /> },
           { path: "skills-dashboard", element: <HrSkillsDashboard /> },
           { path: "recommendations", element: <HrGenerateRecommendations /> },
           { path: "recommendations/generate", element: <HrGenerateRecommendations /> },
@@ -153,7 +151,6 @@ export const router = createBrowserRouter([
           { path: "users", element: <UsersManagement /> },
           { path: "departments", element: <HrDepartments /> },
           { path: "activities", element: <HrActivitiesManagement /> },
-          { path: "activity-applications", element: <ActivityApplications /> },
           { path: "skills-dashboard", element: <HrSkillsDashboard /> },
           { path: "recommendations", element: <HrGenerateRecommendations /> },
           { path: "recommendations/generate", element: <HrGenerateRecommendations /> },
@@ -178,10 +175,11 @@ export const router = createBrowserRouter([
           { path: "blank", element: <Blank /> },
 
           { path: "dashboard", element: <Blank /> },
-          { path: "approvals", element: <ManagerApprovals /> },
           { path: "analytics", element: <Blank /> },
 
           { path: "team", element: <ManagerTeam /> },
+          { path: "skills", element: <SkillsManagementPage /> },
+          { path: "skills/assign", element: <AssignSkillPage /> },
           { path: "profile", element: <Profile /> },
             { path: "activities", element: <ManagerActivities /> },
           { path: "notifications", element: <NotificationsPage /> },
@@ -202,8 +200,6 @@ export const router = createBrowserRouter([
           { path: "blank", element: <Blank /> },
 
           { path: "profile", element: <Profile /> },
-          { path: "activities", element: <MyActivities /> },
-          { path: "applications", element: <AppliedActivities /> },
           { path: "recommendations", element: <Recommendations /> },
           { path: "history", element: <History /> },
           { path: "cv", element: <CvUpload /> },

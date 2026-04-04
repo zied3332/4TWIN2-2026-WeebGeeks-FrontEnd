@@ -39,3 +39,16 @@ export async function markAllNotificationsAsRead(): Promise<void> {
     }
   );
 }
+
+export async function deleteNotification(notificationId: string): Promise<void> {
+  await axios.delete(`${API_URL}/notifications/${notificationId}`, {
+    headers: authHeaders(),
+  });
+}
+
+export async function deleteNotifications(notificationIds: string[]): Promise<void> {
+  await axios.delete(`${API_URL}/notifications`, {
+    headers: authHeaders(),
+    data: { notificationIds },
+  });
+}

@@ -39,11 +39,11 @@ export default function NotificationDropdown({ onClose }: Props) {
 
     onClose();
 
-    if (notification.link) {
-      navigate(notification.link);
-    } else {
-      navigate(getNotificationsPath());
-    }
+    navigate(getNotificationsPath(), {
+      state: {
+        notificationId: notification._id,
+      },
+    });
   };
 
   const latestNotifications = notifications.slice(0, 6);

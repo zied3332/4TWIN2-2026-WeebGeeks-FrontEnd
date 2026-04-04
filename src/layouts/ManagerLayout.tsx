@@ -22,13 +22,14 @@ export default function ManagerLayout() {
     <AppShell
       badge="Manager"
       title="Manager Workspace"
-      subtitle="Team, approvals, and analytics"
+      subtitle="Team and analytics"
       profilePath="/manager/profile"
       nav={[
         { to: "/manager/blank", label: "Dashboard" },
-        { to: "/manager/approvals", label: "Approvals" },
         { to: "/manager/team", label: "My Team" },
-          { to: "/manager/activities", label: "Activities" },
+        { to: "/manager/activities", label: "Activities" },
+        { to: "/manager/skills", label: "Skills Management", end: true },
+        { to: "/manager/skills/assign", label: "Assign Skills", end: true },
         { to: "/manager/blank", label: "Analytics" },
         { to: "/manager/notifications", label: "Notifications" },
       ]}

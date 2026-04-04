@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { assignSkill, getAllSkills } from '../../../services/skills.service';
 import { getUsers } from '../../../services/users.service';
+import { getAllDepartments, type Department } from '../../../services/departments.service';
 
 type Skill = {
   _id: string;
@@ -14,6 +15,7 @@ type Employee = {
   name: string;
   email?: string;
   department?: string;
+  departement_id?: string | { _id?: string; name?: string };
 };
 
 type SkillLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'EXPERT';
@@ -41,19 +43,65 @@ export default function AssignSkillPage() {
   });
 
   useEffect(() => {
+    const getDepartmentId = (value: unknown): string => {
+      if (!value) return '';
+      if (typeof value === 'string') return value;
+      if (typeof value === 'object' && value !== null && '_id' in value) {
+        const id = (value as { _id?: unknown })._id;
+        return typeof id === 'string' ? id : '';
+      }
+      return '';
+    };
+
+    const resolveDepartmentName = (
+      user: Employee,
+      departmentNameById: Map<string, string>,
+    ): string => {
+      const directDepartment = String(user.department || '').trim();
+      if (directDepartment && departmentNameById.has(directDepartment)) {
+        return departmentNameById.get(directDepartment) || '';
+      }
+
+      const depId = getDepartmentId(user.departement_id) || directDepartment;
+      if (depId && departmentNameById.has(depId)) {
+        return departmentNameById.get(depId) || '';
+      }
+
+      if (directDepartment && !/^[a-f\d]{24}$/i.test(directDepartment)) {
+        return directDepartment;
+      }
+
+      return '';
+    };
+
     const loadData = async () => {
       try {
         setLoading(true);
         setError('');
 
-        const [skillsData, employeesRes] = await Promise.all([
+        const [skillsData, employeesRes, departmentsRes] = await Promise.all([
           getAllSkills(),
           getUsers(),
+          getAllDepartments(),
         ]);
 
         setSkills(Array.isArray(skillsData) ? skillsData : []);
+
+        const departments = Array.isArray(departmentsRes) ? departmentsRes : [];
+        const departmentNameById = new Map<string, string>(
+          departments
+            .filter((d: Department) => !!d?._id && !!d?.name)
+            .map((d: Department) => [String(d._id), String(d.name)]),
+        );
+
         const allUsers = Array.isArray(employeesRes) ? employeesRes : [];
-        setEmployees(allUsers.filter((user) => user?.role === 'EMPLOYEE'));
+        const employeeUsers = allUsers.filter((user) => user?.role === 'EMPLOYEE');
+        setEmployees(
+          employeeUsers.map((user) => ({
+            ...user,
+            department: resolveDepartmentName(user, departmentNameById),
+          })),
+        );
       } catch (err) {
         console.error(err);
         setError('Failed to load employees and skills.');
@@ -77,6 +125,16 @@ export default function AssignSkillPage() {
       );
     });
   }, [employees, searchEmployee]);
+
+  const selectableEmployees = useMemo(() => {
+    if (!form.employeeId) return filteredEmployees;
+
+    const selected = employees.find((emp) => emp._id === form.employeeId);
+    if (!selected) return filteredEmployees;
+
+    const alreadyInList = filteredEmployees.some((emp) => emp._id === selected._id);
+    return alreadyInList ? filteredEmployees : [selected, ...filteredEmployees];
+  }, [employees, filteredEmployees, form.employeeId]);
 
   const filteredSkills = useMemo(() => {
     const q = searchSkill.trim().toLowerCase();
@@ -178,10 +236,10 @@ export default function AssignSkillPage() {
                 className="form-input"
               >
                 <option value="">Select employee</option>
-                {filteredEmployees.map((emp) => (
+                {selectableEmployees.map((emp) => (
                   <option key={emp._id} value={emp._id}>
-                    {emp.name}
-                    {emp.department ? ` - ${emp.department}` : ''}
+                    {emp.name || emp.email || 'Unknown employee'}
+                    {emp.department ? ` - ${emp.department}` : ' - No department'}
                   </option>
                 ))}
               </select>

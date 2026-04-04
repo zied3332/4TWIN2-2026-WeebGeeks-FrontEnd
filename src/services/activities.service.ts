@@ -168,6 +168,17 @@ export async function listActivities(): Promise<ActivityRecord[]> {
   return arr.map(mapApiActivity);
 }
 
+export async function getActivityById(activityId: string): Promise<ActivityRecord> {
+  const encodedId = encodeURIComponent(activityId);
+  const res = await fetch(`${BASE}/activities/${encodedId}`, {
+    method: "GET",
+    headers: authHeaders(),
+  });
+
+  const data = await handle(res);
+  return mapApiActivity(data);
+}
+
 export async function createActivity(input: CreateActivityInput): Promise<ActivityRecord> {
   // Keep frontend-only fields out of payload (requiredSkills) because backend forbids unknown props.
   const payload: Record<string, unknown> = {

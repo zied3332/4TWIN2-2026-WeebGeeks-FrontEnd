@@ -25,11 +25,9 @@ export default function EmployeeLayout() {
     <AppShell
       badge="Employee"
       title="My Workspace"
-      subtitle="Profile, activities, progress, and skills"
+      subtitle="Profile, progress, and skills"
       profilePath="/me/profile"
       nav={[
-        { to: "/me/activities", label: "My Activities" },
-        { to: "/me/applications", label: "My Applications" },
         { to: "/me/recommendations", label: "Recommendations" },
         { to: "/me/history", label: "History" },
         { to: "/me/skills", label: "My Skills" },

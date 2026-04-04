@@ -1340,6 +1340,15 @@ a { color: inherit; }
   transform: translateY(1px);
 }
 
+.skill-edit-icon-btn {
+  width: 36px;
+  min-width: 36px;
+  padding: 8px;
+  margin-right: 8px;
+  font-size: 14px;
+  line-height: 1;
+}
+
 .table-footer {
   margin-top: 18px;
   display: flex;
@@ -1714,6 +1723,292 @@ a { color: inherit; }
   font-size: 18px;
   cursor: pointer;
   color: #6b7280;
+}
+
+.notification-detail-modal {
+  max-width: 920px;
+  border: 1px solid #dbe7de;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%);
+}
+
+.notifications-detail-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.notifications-detail-summary-item {
+  border: 1px solid #d5e7da;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #f8fffb 0%, #eff8f2 100%);
+}
+
+.notifications-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.notifications-detail-card {
+  border: 1px solid #dbe7df;
+  border-radius: 16px;
+  padding: 14px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(16, 54, 35, 0.06);
+}
+
+.notifications-detail-card h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.notifications-detail-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.notifications-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notifications-detail-field-label,
+.notifications-detail-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.notifications-detail-field-value {
+  color: #1b2b20;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.notifications-detail-changes {
+  margin-bottom: 14px;
+}
+
+.notifications-detail-change-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notifications-detail-change-item {
+  border: 1px solid #d9e9df;
+  border-radius: 14px;
+  padding: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5fbf7 100%);
+}
+
+.notifications-detail-change-field {
+  margin-bottom: 10px;
+  font-weight: 700;
+  color: #114733;
+}
+
+.notifications-detail-change-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.notifications-detail-empty {
+  text-align: center;
+  border-style: dashed;
+  background: #f8fcfa;
+}
+
+.manager-view-all-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #c9ddcf;
+  border-radius: 999px;
+  background: #f5fbf7;
+  color: #134a34;
+  font-weight: 700;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+
+.manager-view-all-icon-btn:hover {
+  background: #e8f6ee;
+  border-color: #9fcbaf;
+}
+
+.manager-view-all-icon-btn:active {
+  transform: translateY(1px);
+}
+
+.manager-team-modal {
+  max-width: 760px;
+}
+
+.manager-team-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.manager-team-detail-item {
+  border: 1px solid #d8e6de;
+  border-radius: 14px;
+  background: #f8fcfa;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.manager-team-detail-label {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: #5f7468;
+}
+
+.manager-team-skills-card {
+  margin-top: 14px;
+  border: 1px solid #d8e6de;
+  border-radius: 14px;
+  background: #f8fcfa;
+  padding: 12px;
+}
+
+.manager-team-skills-title {
+  font-weight: 800;
+  color: #144c37;
+  margin-bottom: 10px;
+}
+
+.manager-team-skills-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.manager-team-add-skill-form {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr auto;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.manager-team-add-skill-error {
+  margin-bottom: 8px;
+  color: #b91c1c;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.manager-team-skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.manager-team-skill-chip {
+  border: 1px solid #cfe0d5;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px 10px;
+  min-width: 160px;
+}
+
+.manager-team-skill-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.manager-team-skill-name {
+  font-weight: 700;
+  color: #143a2a;
+}
+
+.manager-team-skill-delete-btn {
+  border: 1px solid #f3c5c5;
+  background: #fff6f6;
+  color: #9f1f1f;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.manager-team-skill-delete-btn:hover {
+  background: #ffecec;
+  border-color: #ec9f9f;
+}
+
+.manager-team-skill-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.manager-delete-warning-modal {
+  max-width: 560px;
+  border: 1px solid #f5c7c7;
+}
+
+.manager-delete-warning-box {
+  border: 1px solid #f5d0d0;
+  background: #fff5f5;
+  color: #8b1f1f;
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.btn-danger {
+  background: #b42323;
+  color: #fff;
+  border: 1px solid #991b1b;
+}
+
+.btn-danger:hover {
+  background: #991b1b;
+}
+
+.manager-team-skill-meta {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: #5f7468;
+  font-size: 12px;
+}
+
+.manager-team-skill-meta span {
+  background: #edf6f1;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.notifications-detail-json {
+  margin: 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: #0f172a;
+  color: #e2e8f0;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .skill-form-grid {
@@ -2111,6 +2406,20 @@ a { color: inherit; }
 }
 
 @media (max-width: 640px) {
+  .notifications-detail-summary,
+  .notifications-detail-grid,
+  .notifications-detail-change-values {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-team-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-team-add-skill-form {
+    grid-template-columns: 1fr;
+  }
+
   .notifications-page-shell .kpi-grid {
     grid-template-columns: 1fr;
   }

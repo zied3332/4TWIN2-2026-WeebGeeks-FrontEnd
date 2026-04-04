@@ -84,7 +84,6 @@ export default function CompleteProfile() {
       <nav className="auth-top-nav">
         <div className="auth-logo-wrap">
           <img className="auth-logo-img" src={logoSrc} alt="IntelliHR logo" />
-          <div className="auth-logo-text">IntelliHR</div>
         </div>
       </nav>
 
@@ -97,7 +96,6 @@ export default function CompleteProfile() {
         <div className="modern-auth-card modern-auth-card-register">
           <div className="brand-title">
             <img className="brand-title-logo" src={logoSrc} alt="logo" />
-            <span>IntelliHR</span>
           </div>
           <h2>Complete your profile</h2>
           <p className="auth-subtitle">

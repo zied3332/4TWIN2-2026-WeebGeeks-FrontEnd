@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../hooks/useNotifications';
-import type { AppNotification } from '../../types/notification';
+import type { AppNotification, NotificationChange } from '../../types/notification';
+import { getActivityById, type ActivityRecord } from '../../services/activities.service';
+import { getAllDepartments } from '../../services/departments.service';
 
 type FilterType = 'ALL' | 'UNREAD' | 'READ';
 
@@ -72,13 +74,362 @@ function getTypeBadgeClass(type: string) {
   }
 }
 
+type NotificationLocationState = {
+  notificationId?: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isHiddenField(field: string) {
+  const normalized = field.trim().toLowerCase();
+  if (!normalized) return true;
+  if (normalized === 'id' || normalized === '_id') return true;
+  if (normalized.endsWith('_id') || normalized.endsWith('id')) return true;
+  if (normalized.includes('userid') || normalized.includes('employeeid') || normalized.includes('activityid')) return true;
+  return false;
+}
+
+function toLabel(field: string) {
+  const map: Record<string, string> = {
+    jobTitle: 'Job title',
+    experienceYears: 'Years of experience',
+    seniorityLevel: 'Seniority level',
+    name: 'Name',
+    email: 'Email',
+    telephone: 'Phone number',
+    matricule: 'Matricule',
+    status: 'Status',
+    role: 'Role',
+    department: 'Department',
+    departmentName: 'Department',
+    date_embauche: 'Hire date',
+    avatarUrl: 'Avatar',
+    accountStatus: 'Account status',
+    title: 'Activity title',
+    description: 'Description',
+    type: 'Type',
+    location: 'Location',
+    startDate: 'Start date',
+    endDate: 'End date',
+    duration: 'Duration',
+    seats: 'Available seats',
+    statusText: 'Status',
+    context: 'Context',
+    priority_level: 'Priority level',
+  };
+
+  if (map[field]) return map[field];
+  return field
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replaceAll('_', ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^./, (char) => char.toUpperCase());
+}
+
+function formatDetailValue(value: unknown) {
+  if (value === null || value === undefined || value === '') return 'Not set';
+  if (value instanceof Date) return value.toLocaleString();
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return value.map((item) => formatDetailValue(item)).join(', ');
+  if (isRecord(value)) return JSON.stringify(value, null, 2);
+  return String(value);
+}
+
+function isMongoIdLike(value: unknown) {
+  return typeof value === 'string' && /^[a-f0-9]{24}$/i.test(value.trim());
+}
+
+function formatSnapshotEntries(snapshot?: Record<string, unknown> | null) {
+  if (!snapshot) return [];
+
+  return Object.entries(snapshot).filter(([key]) => !isHiddenField(key));
+}
+
+function getEventDetails(metadata: Record<string, unknown>) {
+  const entityType = String(metadata.entityType || '');
+
+  if (entityType === 'EMPLOYEE_ASSIGNED_TO_DEPARTMENT') {
+    return [
+      {
+        label: 'Employee',
+        value: formatDetailValue(metadata.employeeName),
+      },
+      {
+        label: 'Department',
+        value: formatDetailValue(metadata.departmentName),
+      },
+    ].filter((item) => item.value !== 'Not set');
+  }
+
+  if (entityType === 'SKILL_ASSIGNED') {
+    return [
+      {
+        label: 'Manager',
+        value: formatDetailValue(metadata.actorName),
+      },
+      {
+        label: 'Skill',
+        value: formatDetailValue(metadata.skillName),
+      },
+      {
+        label: 'Level',
+        value: formatDetailValue(metadata.level),
+      },
+    ].filter((item) => item.value !== 'Not set');
+  }
+
+  return [];
+}
+
+function NotificationDetailModal({
+  notification,
+  onClose,
+  onOpenLinkedPage,
+}: {
+  notification: AppNotification;
+  onClose: () => void;
+  onOpenLinkedPage?: () => void;
+}) {
+  const metadata = notification.metadata || {};
+  const allChanges = Array.isArray(metadata.changes) ? (metadata.changes as NotificationChange[]) : [];
+  const changes = allChanges.filter((change) => !isHiddenField(change.field));
+  const activitySnapshot = isRecord(metadata.activitySnapshot) ? metadata.activitySnapshot : null;
+  const activityId = typeof metadata.activityId === 'string' ? metadata.activityId : '';
+
+  const [activityDetails, setActivityDetails] = useState<ActivityRecord | null>(null);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [departmentsById, setDepartmentsById] = useState<Record<string, string>>({});
+
+  const needsDepartmentResolution = useMemo(() => {
+    return changes.some((change) => {
+      const field = String(change.field || '').toLowerCase();
+      if (field !== 'department' && field !== 'departmentname') return false;
+      return isMongoIdLike(change.before) || isMongoIdLike(change.after);
+    });
+  }, [changes]);
+
+  useEffect(() => {
+    if (!needsDepartmentResolution) {
+      setDepartmentsById({});
+      return;
+    }
+
+    let active = true;
+    getAllDepartments()
+      .then((rows) => {
+        if (!active) return;
+        const map: Record<string, string> = {};
+        for (const row of Array.isArray(rows) ? rows : []) {
+          if (!row?._id) continue;
+          map[String(row._id)] = String(row.name || row.code || 'Department');
+        }
+        setDepartmentsById(map);
+      })
+      .catch(() => {
+        if (!active) return;
+        setDepartmentsById({});
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [needsDepartmentResolution]);
+
+  useEffect(() => {
+    if (activitySnapshot || !activityId) {
+      setActivityDetails(null);
+      return;
+    }
+
+    let active = true;
+    setActivityLoading(true);
+    getActivityById(activityId)
+      .then((activity) => {
+        if (!active) return;
+        setActivityDetails(activity);
+      })
+      .catch(() => {
+        if (!active) return;
+        setActivityDetails(null);
+      })
+      .finally(() => {
+        if (!active) return;
+        setActivityLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activityId, activitySnapshot]);
+
+  const hasProfileDiff = changes.length > 0;
+  const hasActivityDetails = Boolean(activitySnapshot || activityDetails);
+  const eventDetails = useMemo(() => getEventDetails(metadata), [metadata]);
+
+  const formatChangeValue = useCallback((field: string, value: unknown) => {
+    const normalizedField = String(field || '').toLowerCase();
+    if ((normalizedField === 'department' || normalizedField === 'departmentname') && isMongoIdLike(value)) {
+      const key = String(value).trim();
+      if (departmentsById[key]) return departmentsById[key];
+      return 'Department updated';
+    }
+    return formatDetailValue(value);
+  }, [departmentsById]);
+
+  const activityData = useMemo(() => {
+    if (activitySnapshot) {
+      return activitySnapshot;
+    }
+    if (!activityDetails) return null;
+
+    return {
+      title: activityDetails.title,
+      description: activityDetails.description,
+      type: activityDetails.type,
+      location: activityDetails.location,
+      startDate: activityDetails.startDate,
+      endDate: activityDetails.endDate,
+      duration: activityDetails.duration,
+      seats: activityDetails.availableSlots,
+      status: activityDetails.status,
+      context: activityDetails.priorityContext,
+      priority_level: activityDetails.targetLevel,
+    } as Record<string, unknown>;
+  }, [activityDetails, activitySnapshot]);
+
+  return (
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div className="modal-card notification-detail-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h2>{notification.title}</h2>
+            <p>{notification.message}</p>
+          </div>
+          <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close notification details">
+            ×
+          </button>
+        </div>
+
+        <div className="modal-body">
+          <div className="notifications-detail-summary">
+            <div className="notifications-detail-summary-item">
+              <span className="notifications-detail-label">Type</span>
+              <strong>{notification.type.replaceAll('_', ' ')}</strong>
+            </div>
+            <div className="notifications-detail-summary-item">
+              <span className="notifications-detail-label">Status</span>
+              <strong>{notification.isRead ? 'Read' : 'Unread'}</strong>
+            </div>
+            <div className="notifications-detail-summary-item">
+              <span className="notifications-detail-label">Received</span>
+              <strong>{new Date(notification.createdAt).toLocaleString()}</strong>
+            </div>
+            {metadata.actorName ? (
+              <div className="notifications-detail-summary-item">
+                <span className="notifications-detail-label">Updated by</span>
+                <strong>
+                  {metadata.actorName}
+                  {metadata.updatedByRole || metadata.actorRole
+                    ? ` (${String(metadata.updatedByRole || metadata.actorRole).replaceAll('_', ' ')})`
+                    : ''}
+                </strong>
+              </div>
+            ) : null}
+          </div>
+
+          {hasProfileDiff ? (
+            <div className="notifications-detail-card notifications-detail-changes">
+              <h4>What changed</h4>
+              <div className="notifications-detail-change-list">
+                {changes.map((change) => (
+                  <div key={change.field} className="notifications-detail-change-item">
+                    <div className="notifications-detail-change-field">{toLabel(change.field)}</div>
+                    <div className="notifications-detail-change-values">
+                      <div>
+                        <span className="notifications-detail-label">Before</span>
+                        <div className="notifications-detail-field-value">{formatChangeValue(change.field, change.before)}</div>
+                      </div>
+                      <div>
+                        <span className="notifications-detail-label">After</span>
+                        <div className="notifications-detail-field-value">{formatChangeValue(change.field, change.after)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {!hasProfileDiff && eventDetails.length ? (
+            <div className="notifications-detail-card">
+              <h4>Details</h4>
+              <div className="notifications-detail-fields">
+                {eventDetails.map((detail) => (
+                  <div key={detail.label} className="notifications-detail-field">
+                    <span className="notifications-detail-field-label">{detail.label}</span>
+                    <span className="notifications-detail-field-value">{detail.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {hasActivityDetails ? (
+            <div className="notifications-detail-card">
+              <h4>Activity Details</h4>
+              <div className="notifications-detail-fields">
+                {formatSnapshotEntries(activityData).map(([key, value]) => (
+                  <div key={`activity-${key}`} className="notifications-detail-field">
+                    <span className="notifications-detail-field-label">{toLabel(key)}</span>
+                    <span className="notifications-detail-field-value">{formatDetailValue(value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {activityLoading ? (
+            <div className="notifications-detail-card">
+              <p className="muted">Loading activity details...</p>
+            </div>
+          ) : null}
+
+          {!hasProfileDiff && !hasActivityDetails && !activityLoading && eventDetails.length === 0 ? (
+            <div className="notifications-detail-card notifications-detail-empty">
+              <p className="muted">No extra details to display for this notification.</p>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="modal-footer">
+          {notification.link ? (
+            <button type="button" className="btn btn-ghost" onClick={onOpenLinkedPage}>
+              Open related page
+            </button>
+          ) : null}
+          <button type="button" className="btn btn-primary" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function NotificationsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     notifications,
     loading,
     markOneAsRead,
     markEverythingAsRead,
+    deleteOneNotification,
+    deleteManyNotifications,
   } = useNotifications();
 
   const [filter, setFilter] = useState<FilterType>('ALL');
@@ -86,6 +437,9 @@ export default function NotificationsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showAllUnread, setShowAllUnread] = useState(false);
   const [showAllRead, setShowAllRead] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedNotification, setSelectedNotification] = useState<AppNotification | null>(null);
+  const openedFromStateRef = useRef<string | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -150,32 +504,98 @@ export default function NotificationsPage() {
   }, [notifications, filter, debouncedSearch]);
 
   const handleClick = useCallback(async (notification: AppNotification) => {
+    setSelectedNotification(notification);
+
     if (!notification.isRead) {
       void markOneAsRead(notification._id);
     }
+  }, [markOneAsRead]);
 
-    if (notification.link) {
-      navigate(notification.link);
-    }
-  }, [markOneAsRead, navigate]);
+  const toggleSelected = useCallback((notificationId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(notificationId)) next.delete(notificationId);
+      else next.add(notificationId);
+      return next;
+    });
+  }, []);
+
+  const deleteSelected = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+
+    const confirmed = window.confirm(`Delete ${ids.length} selected notification(s)?`);
+    if (!confirmed) return;
+
+    await deleteManyNotifications(ids);
+    setSelectedIds(new Set());
+  }, [deleteManyNotifications, selectedIds]);
+
+  const deleteSingle = useCallback(async (notificationId: string) => {
+    const confirmed = window.confirm('Delete this notification?');
+    if (!confirmed) return;
+
+    await deleteOneNotification(notificationId);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(notificationId);
+      return next;
+    });
+  }, [deleteOneNotification]);
 
   const unreadTopFive = useMemo(() => unreadNotifications.slice(0, 5), [unreadNotifications]);
   const readTopFive = useMemo(() => readNotifications.slice(0, 5), [readNotifications]);
   const unreadSideList = showAllUnread ? unreadNotifications : unreadTopFive;
   const readSideList = showAllRead ? readNotifications : readTopFive;
 
+  useEffect(() => {
+    const state = location.state as NotificationLocationState | null;
+    const notificationId = state?.notificationId;
+    if (!notificationId) return;
+    if (openedFromStateRef.current === notificationId) return;
+
+    const match = notifications.find((item) => item._id === notificationId);
+    if (!match) return;
+
+    openedFromStateRef.current = notificationId;
+    setSelectedNotification(match);
+
+    if (!match.isRead) {
+      void markOneAsRead(match._id);
+    }
+  }, [location.state, markOneAsRead, notifications]);
+
   const renderNotificationCard = useCallback((notification: AppNotification) => (
-    <button
+    <div
       key={notification._id}
-      type="button"
       className={`notifications-page-item ${notification.isRead ? '' : 'unread'}`}
+      role="button"
+      tabIndex={0}
       onClick={() => handleClick(notification)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick(notification);
+        }
+      }}
       aria-label={`Notification: ${notification.title}. ${notification.isRead ? 'Read' : 'Unread'}`}
     >
       <div className="notifications-page-item-top">
         <div>
           <div className="notifications-page-headline-row">
-            <h3>{notification.title}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="checkbox"
+                checked={selectedIds.has(notification._id)}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  toggleSelected(notification._id);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                aria-label={`Select notification ${notification.title}`}
+              />
+              <h3>{notification.title}</h3>
+            </div>
             <span className={getTypeBadgeClass(notification.type)}>
               {notification.type.replaceAll('_', ' ')}
             </span>
@@ -184,15 +604,38 @@ export default function NotificationsPage() {
           <p>{notification.message}</p>
         </div>
 
-        {!notification.isRead && <span className="notification-dot" aria-hidden="true" />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {!notification.isRead && <span className="notification-dot" aria-hidden="true" />}
+          <button
+            type="button"
+            className="btn btn-ghost btn-small"
+            onClick={(e) => {
+              e.stopPropagation();
+              void deleteSingle(notification._id);
+            }}
+            aria-label={`Delete notification ${notification.title}`}
+          >
+            Delete
+          </button>
+        </div>
       </div>
 
       <div className="notifications-page-meta">
         <span>{formatRelativeDate(notification.createdAt)}</span>
         <span>{formatDate(notification.createdAt)}</span>
       </div>
-    </button>
-  ), [handleClick]);
+    </div>
+  ), [handleClick, selectedIds, toggleSelected, deleteSingle]);
+
+  const closeDetailModal = useCallback(() => {
+    openedFromStateRef.current = null;
+    setSelectedNotification(null);
+  }, []);
+
+  const openLinkedPage = useCallback(() => {
+    if (!selectedNotification?.link) return;
+    navigate(selectedNotification.link);
+  }, [navigate, selectedNotification]);
 
   return (
     <div className="page notifications-page-shell">
@@ -210,7 +653,7 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        <div className="hr-actions">
+        <div className="hr-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             type="button"
             className="btn btn-primary btn-small"
@@ -246,7 +689,17 @@ export default function NotificationsPage() {
           <div className="card section-card">
             <div className="section-head">
               <div className="section-title">Notification Feed</div>
-              <span className="muted">{filteredNotifications.length} items</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span className="muted">{filteredNotifications.length} items</span>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-small"
+                  onClick={deleteSelected}
+                  disabled={selectedIds.size === 0}
+                >
+                  Delete selected {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
+                </button>
+              </div>
             </div>
 
             <div className="tabs" style={{ marginBottom: 14 }} role="tablist" aria-label="Notification filters">
@@ -424,6 +877,14 @@ export default function NotificationsPage() {
           </div>
         </div>
       </div>
+
+      {selectedNotification ? (
+        <NotificationDetailModal
+          notification={selectedNotification}
+          onClose={closeDetailModal}
+          onOpenLinkedPage={openLinkedPage}
+        />
+      ) : null}
       </div>
     </div>
   );

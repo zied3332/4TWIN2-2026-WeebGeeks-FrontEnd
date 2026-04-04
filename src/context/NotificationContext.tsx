@@ -10,6 +10,8 @@ import {
 import { io, type Socket } from 'socket.io-client';
 import type { AppNotification } from '../types/notification';
 import {
+  deleteNotification,
+  deleteNotifications,
   getMyNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
@@ -30,6 +32,8 @@ type NotificationContextType = {
   refreshNotifications: () => Promise<void>;
   markOneAsRead: (notificationId: string) => Promise<void>;
   markEverythingAsRead: () => Promise<void>;
+  deleteOneNotification: (notificationId: string) => Promise<void>;
+  deleteManyNotifications: (notificationIds: string[]) => Promise<void>;
 };
 
 export const NotificationContext = createContext<NotificationContextType | null>(
@@ -111,6 +115,31 @@ export function NotificationProvider({ children }: Props) {
     }
   }, []);
 
+  const deleteOneNotification = useCallback(async (notificationId: string) => {
+    setNotifications((prev) => prev.filter((item) => item._id !== notificationId));
+
+    try {
+      await deleteNotification(notificationId);
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+      await refreshNotifications();
+    }
+  }, [refreshNotifications]);
+
+  const deleteManyNotifications = useCallback(async (notificationIds: string[]) => {
+    const ids = Array.from(new Set(notificationIds.filter(Boolean)));
+    if (!ids.length) return;
+
+    setNotifications((prev) => prev.filter((item) => !ids.includes(item._id)));
+
+    try {
+      await deleteNotifications(ids);
+    } catch (error) {
+      console.error('Failed to delete notifications:', error);
+      await refreshNotifications();
+    }
+  }, [refreshNotifications]);
+
   useEffect(() => {
     refreshNotifications();
 
@@ -159,6 +188,8 @@ export function NotificationProvider({ children }: Props) {
       refreshNotifications,
       markOneAsRead,
       markEverythingAsRead,
+      deleteOneNotification,
+      deleteManyNotifications,
     }),
     [
       notifications,
@@ -167,6 +198,8 @@ export function NotificationProvider({ children }: Props) {
       refreshNotifications,
       markOneAsRead,
       markEverythingAsRead,
+      deleteOneNotification,
+      deleteManyNotifications,
     ]
   );
 

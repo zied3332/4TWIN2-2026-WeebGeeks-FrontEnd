@@ -3,6 +3,7 @@ import {
   createSkill,
   deleteSkill,
   getAllSkills,
+  updateSkill,
 } from '../../../services/skills.service';
 
 type SkillCategory = 'KNOWLEDGE' | 'KNOW_HOW' | 'SOFT';
@@ -14,6 +15,14 @@ type Skill = {
   description?: string;
 };
 
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className="skill-edit-icon-svg">
+      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm2.92 2.33h-.67v-.67l8.56-8.56.67.67-8.56 8.56Zm14.71-11.54a1.003 1.003 0 0 0 0-1.42l-2.25-2.25a1.003 1.003 0 0 0-1.42 0l-1.77 1.77 3.75 3.75 1.69-1.85Z" />
+    </svg>
+  );
+}
+
 const ITEMS_PER_PAGE = 8;
 
 export default function SkillsManagementPage() {
@@ -23,6 +32,7 @@ export default function SkillsManagementPage() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
 
   const [form, setForm] = useState<{
     name: string;
@@ -105,25 +115,55 @@ export default function SkillsManagementPage() {
       setSubmitting(true);
       setError('');
 
-      await createSkill({
-        name: form.name.trim(),
-        category: form.category,
-        description: form.description.trim(),
-      });
+      if (editingSkillId) {
+        await updateSkill(editingSkillId, {
+          name: form.name.trim(),
+          category: form.category,
+          description: form.description.trim(),
+        });
+      } else {
+        await createSkill({
+          name: form.name.trim(),
+          category: form.category,
+          description: form.description.trim(),
+        });
+      }
 
       setForm({
         name: '',
         category: 'KNOWLEDGE',
         description: '',
       });
+      setEditingSkillId(null);
 
       await loadSkills();
     } catch (err) {
       console.error(err);
-      setError('Failed to create skill.');
+      setError(editingSkillId ? 'Failed to update skill.' : 'Failed to create skill.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleStartEdit = (skill: Skill) => {
+    setError('');
+    setEditingSkillId(skill._id);
+    setForm({
+      name: skill.name || '',
+      category: skill.category,
+      description: skill.description || '',
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSkillId(null);
+    setError('');
+    setForm({
+      name: '',
+      category: 'KNOWLEDGE',
+      description: '',
+    });
   };
 
   const handleDelete = async (id: string) => {
@@ -196,8 +236,13 @@ export default function SkillsManagementPage() {
 
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={submitting}>
-              {submitting ? 'Adding...' : '+ Add Skill'}
+              {submitting ? (editingSkillId ? 'Saving...' : 'Adding...') : (editingSkillId ? 'Save changes' : '+ Add Skill')}
             </button>
+            {editingSkillId && (
+              <button type="button" className="btn btn-ghost" onClick={handleCancelEdit} disabled={submitting}>
+                Cancel edit
+              </button>
+            )}
           </div>
         </form>
       </div>
@@ -261,6 +306,15 @@ export default function SkillsManagementPage() {
                     </td>
                     <td>{skill.description || '—'}</td>
                     <td className="text-center">
+                      <button
+                        type="button"
+                        className="table-action-btn skill-edit-icon-btn"
+                        onClick={() => handleStartEdit(skill)}
+                        title="Edit skill"
+                        aria-label={`Edit ${skill.name}`}
+                      >
+                        <EditIcon />
+                      </button>
                       <button
                         type="button"
                         className="table-action-btn"

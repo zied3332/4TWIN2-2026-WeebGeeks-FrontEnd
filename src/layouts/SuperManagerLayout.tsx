@@ -29,7 +29,6 @@ export default function SuperManagerLayout() {
         { to: "/super-manager/employees", label: "Employee Management" },
         { to: "/super-manager/departments", label: "Departments Management" },
         { to: "/super-manager/activities", label: "Activity Management", end: true },
-        { to: "/super-manager/activity-applications", label: "Activity Applications", end: true },
         { to: "/super-manager/skills", label: "Skills Management", end: true },
         { to: "/super-manager/skills/assign", label: "Assign Skills", end: true },
         { to: "/super-manager/recommendations", label: "Recommendations" },

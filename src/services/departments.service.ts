@@ -8,6 +8,16 @@ export interface Department {
   manager_id?: string;
 }
 
+function authHeaders() {
+  const rawToken = localStorage.getItem("token") || localStorage.getItem("access_token");
+  const token = String(rawToken || "").replace(/^Bearer\s+/i, "").trim();
+
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 async function handle(res: Response) {
   if (!res.ok) {
     const txt = await res.text();
@@ -24,7 +34,7 @@ async function handle(res: Response) {
 export async function getAllDepartments(): Promise<Department[]> {
   const res = await fetch(`${BASE}/departments`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
   });
   return handle(res);
 }
@@ -37,7 +47,7 @@ export async function createDepartment(data: {
 }): Promise<Department> {
   const res = await fetch(`${BASE}/departments`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify(data),
   });
   return handle(res);
@@ -54,7 +64,7 @@ export async function updateDepartment(
 ): Promise<Department> {
   const res = await fetch(`${BASE}/departments/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify(data),
   });
   return handle(res);
@@ -63,7 +73,7 @@ export async function updateDepartment(
 export async function deleteDepartment(id: string): Promise<void> {
   const res = await fetch(`${BASE}/departments/${id}`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
   });
   await handle(res);
 }

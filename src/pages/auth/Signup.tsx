@@ -98,7 +98,6 @@ export default function Signup() {
       <nav className="auth-top-nav">
         <div className="auth-logo-wrap">
           <img className="auth-logo-img" src={logoSrc} alt="IntelliHR logo" />
-          <div className="auth-logo-text">IntelliHR</div>
         </div>
         <div className="auth-nav-links">
           <a href="#">Who we are</a>
@@ -123,7 +122,6 @@ export default function Signup() {
         <div className="modern-auth-card modern-auth-card-register">
           <div className="brand-title">
             <img className="brand-title-logo" src={logoSrc} alt="IntelliHR logo" />
-            <span>IntelliHR</span>
           </div>
           <h2>Create account</h2>
           <p className="auth-subtitle">Internal access only (company users).</p>

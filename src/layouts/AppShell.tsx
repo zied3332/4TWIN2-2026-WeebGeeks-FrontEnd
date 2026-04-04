@@ -144,8 +144,12 @@ export default function AppShell({
      
         <div className="side-brand">
           <div className="side-logo-wrap">
-            <img className="side-logo-img" src={logoSrc} alt="IntelliHR logo" />
-            <div className="side-logo">IntelliHR</div>
+            <img
+              className="side-logo-img"
+              src={logoSrc}
+              alt="IntelliHR logo"
+              style={{ width: 68, height: 68 }}
+            />
           </div>
           <span className="badge">{badge}</span>
         </div>

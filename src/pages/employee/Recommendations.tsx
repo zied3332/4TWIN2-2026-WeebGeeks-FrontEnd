@@ -231,7 +231,7 @@ export default function Recommendations() {
           </div>
 
           <div className="hr-actions">
-            <button className="btn btn-ghost" onClick={() => void generate()} disabled={loading}>
+            <button className="btn w-full btn-primary" onClick={() => navigate("/me/skills")}>
               {loading ? "Refreshing..." : "Refresh"}
             </button>
             <button className="btn btn-primary" onClick={() => void generate()} disabled={loading}>
@@ -383,8 +383,8 @@ export default function Recommendations() {
               <button className="btn w-full" onClick={() => navigate("/me/profile")}>
                 Open my profile
               </button>
-              <button className="btn w-full btn-primary" onClick={() => navigate("/me/activities")}>
-                See my activities
+              <button className="btn w-full btn-primary" onClick={() => navigate("/me/skills")}>
+                See my skills
               </button>
             </div>
           </div>

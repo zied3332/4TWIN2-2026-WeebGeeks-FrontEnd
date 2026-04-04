@@ -370,8 +370,8 @@
 }
 
 .auth-logo-img {
-  width: 130px;
-  height: 130px;
+  width: 150px;
+  height: 150px;
   object-fit: contain;
   flex: 0 0 auto;
 }
@@ -497,8 +497,8 @@
 }
 
 .brand-title-logo {
-  width: 130px;
-  height: 130px;
+  width: 150px;
+  height: 150px;
   object-fit: contain;
 }
 

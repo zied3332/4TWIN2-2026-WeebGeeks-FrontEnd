@@ -32,9 +32,11 @@ async function handle(res: Response) {
 }
 
 export async function getAllDepartments(): Promise<Department[]> {
-  const res = await fetch(`${BASE}/departments`, {
+  const res = await fetch(`${BASE}/departments/public`, {
     method: "GET",
-    headers: authHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
   return handle(res);
 }

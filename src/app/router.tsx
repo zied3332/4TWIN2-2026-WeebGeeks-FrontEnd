@@ -41,6 +41,8 @@ import HrStatsDashboard from "../pages/hr/HrStatsDashboard";
 import CompleteProfile from "../pages/auth/CompleteProfile";
 
 
+import AccountPending from "../pages/auth/AccountPending";
+
 type Role = "HR" | "SUPER_MANAGER" | "MANAGER" | "EMPLOYEE";
 
 function getRole(): Role | null {
@@ -102,6 +104,9 @@ export const router = createBrowserRouter([
       { path: "signup", element: <Signup /> },
       { path: "forgot-password", element: <ForgotPassword /> },
       { path: "reset-password", element: <ResetPassword /> },
+      {
+path: "/auth/account-pending", element: <AccountPending /> 
+      },
     ],
   },
 

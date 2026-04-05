@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { loginUser, loginWithGoogle  } from "../../services/auth.service";
 import "../../auth-pages.css";
 const logoSrc = "/images/logo.png";
-
+const logoSrc1 = "/images/logo1.png";
 function redirectByRole(nav: ReturnType<typeof useNavigate>, roleRaw: unknown) {
   const role = String(roleRaw || "").toLowerCase().replace(/\s+/g, "_");
 
@@ -110,9 +110,8 @@ export default function Login() {
         </div>
 
         <div className="modern-auth-card">
-          <div className="brand-title">
-            <img className="brand-title-logo" src={logoSrc} alt="IntelliHR logo" />
-          </div>
+       <div className="brand-icon">
+<img src="/images/logo1.png" alt="IntelliHR Logo" /></div>
           <h2>Let's login</h2>
           <p className="auth-subtitle">Access your HR workspace securely.</p>
 
@@ -177,8 +176,8 @@ export default function Login() {
   <img
     src="https://www.svgrepo.com/show/475656/google-color.svg"
     alt="Google"
-    width={20}
-    height={20}
+    width={10}
+    height={10}
   />
   Continue with Google
 </button>

@@ -20,6 +20,7 @@ type PreviewRow = {
   telephone?: string;
   date_embauche?: string;
   role?: "EMPLOYEE" | "MANAGER" | "HR" | "SUPER_MANAGER" | string;
+  status?: string; 
 };
 
 type FilterMode = "ALL" | "VALID" | "INVALID";
@@ -217,7 +218,13 @@ function normalizeRole(r: string) {
   if (x === "EMPLOYEE" || x === "MANAGER" || x === "HR") return x;
   return x;
 }
+function normalizeStatus(s: string) {
+  const x = toStr(s).toUpperCase();
 
+  if (x === "ACTIVE" || x === "DISABLED") return x;
+
+  return "ACTIVE"; // default
+}
 function isIsoDate(s: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
@@ -326,6 +333,7 @@ export function ImportUsersModal({ open, onClose, onImported }: Props) {
         out[nk] = obj[k];
       }
       out.role = normalizeRole(toStr(out.role || "EMPLOYEE"));
+      out.status = normalizeStatus(toStr(out.status || "ACTIVE")); 
       out.date_embauche = toStr(out.date_embauche);
       return out as PreviewRow;
     });
@@ -527,8 +535,8 @@ export function ImportUsersModal({ open, onClose, onImported }: Props) {
                 <span>
                   Total: <b>{rows.length}</b>
                 </span>
-                <span style={P.kpi(true)}>✅ Valid: {validCount}</span>
-                <span style={P.kpi(false)}>❌ Invalid: {invalidCount}</span>
+                <span style={P.kpi(true)}>Valid: {validCount}</span>
+                <span style={P.kpi(false)}>Invalid: {invalidCount}</span>
               </div>
             )}
           </div>

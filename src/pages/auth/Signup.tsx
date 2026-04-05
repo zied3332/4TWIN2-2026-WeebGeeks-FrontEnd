@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { registerUser, loginWithGoogle } from "../../services/auth.service";
 import { getAllDepartments } from "../../services/departments.service";
 import "../../auth-pages.css";
+
 const logoSrc = "/images/logo.png";
 
 interface Department {
@@ -16,7 +17,12 @@ interface Department {
 
 export default function Signup() {
   const nav = useNavigate();
-  const heroImages = ["/images/bg1.png", "/images/bg2.png", "/images/bg3.png", "/images/bg4.png"];
+  const heroImages = [
+    "/images/bg1.png",
+    "/images/bg2.png",
+    "/images/bg3.png",
+    "/images/bg4.png",
+  ];
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -30,7 +36,7 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeIndex, setActiveIndex] = useState(1);
-  
+
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingDepts, setLoadingDepts] = useState(true);
   const [deptError, setDeptError] = useState("");
@@ -39,6 +45,7 @@ export default function Signup() {
     const fetchDepartments = async () => {
       try {
         setLoadingDepts(true);
+        setDeptError("");
         const depts = await getAllDepartments();
         setDepartments(depts);
       } catch (err: any) {
@@ -60,25 +67,69 @@ export default function Signup() {
     return () => window.clearInterval(timer);
   }, [heroImages.length]);
 
+  function normalizeError(err: any): string {
+    const responseData = err?.response?.data;
+
+    if (Array.isArray(responseData?.message)) {
+      return responseData.message.join(", ");
+    }
+
+    if (typeof responseData?.message === "string") {
+      return responseData.message;
+    }
+
+    if (typeof err?.message === "string") {
+      return err.message;
+    }
+
+    return "Signup failed";
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    const trimmedName = fullName.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedTelephone = telephone.trim();
+    const normalizedMatricule = matricule.trim().toUpperCase();
+
+    if (trimmedName.length < 2) {
+      setError("Full name must contain at least 2 characters.");
+      return;
+    }
+
+    if (normalizedMatricule.length === 0) {
+      setError("Matricule is required.");
+      return;
+    }
+
+    if (password.trim().length < 6) {
+      setError("Password must contain at least 6 characters.");
+      return;
+    }
+
+    if (!dateEmbauche) {
+      setError("Hire date is required.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       await registerUser({
-        name: fullName,
-        email,
-        password,
-        departement_id: departementId,
-        matricule,
-        telephone,
+        name: trimmedName,
+        email: trimmedEmail,
+        password: password.trim(),
+        departement_id: departementId || undefined,
+        matricule: normalizedMatricule,
+        telephone: trimmedTelephone,
         date_embauche: dateEmbauche,
       });
 
-      nav("/auth/login");
+      nav("/auth/account-pending");
     } catch (err: any) {
-      setError(err?.message || "Signup failed");
+      setError(normalizeError(err));
     } finally {
       setLoading(false);
     }
@@ -99,13 +150,17 @@ export default function Signup() {
         <div className="auth-logo-wrap">
           <img className="auth-logo-img" src={logoSrc} alt="IntelliHR logo" />
         </div>
+
         <div className="auth-nav-links">
           <a href="#">Who we are</a>
           <a href="#">Services</a>
           <a href="#">Case studies</a>
           <a href="#">Blog</a>
         </div>
-        <a href="#" className="auth-nav-btn">Get in touch</a>
+
+        <a href="#" className="auth-nav-btn">
+          Get in touch
+        </a>
       </nav>
 
       <div className="auth-hero-content">
@@ -115,7 +170,8 @@ export default function Signup() {
             <span> account</span>
           </h1>
           <p>
-            Join the company platform and manage your employee access with a premium experience.
+            Join the company platform and manage your employee access with a
+            premium experience.
           </p>
         </div>
 
@@ -123,8 +179,11 @@ export default function Signup() {
           <div className="brand-title">
             <img className="brand-title-logo" src={logoSrc} alt="IntelliHR logo" />
           </div>
+
           <h2>Create account</h2>
-          <p className="auth-subtitle">Internal access only (company users).</p>
+          <p className="auth-subtitle">
+            Internal access only (company users).
+          </p>
 
           {error ? <div className="auth-alert">{error}</div> : null}
 
@@ -142,7 +201,10 @@ export default function Signup() {
 
               <div className="field">
                 <label>Department</label>
-                {deptError ? <div className="auth-alert auth-inline-alert">{deptError}</div> : null}
+                {deptError ? (
+                  <div className="auth-alert auth-inline-alert">{deptError}</div>
+                ) : null}
+
                 <select
                   value={departementId}
                   onChange={(e) => setDepartementId(e.target.value)}
@@ -166,8 +228,8 @@ export default function Signup() {
                 <label>Matricule</label>
                 <input
                   value={matricule}
-                  onChange={(e) => setMatricule(e.target.value)}
-                  placeholder="EMP-1023"
+                  onChange={(e) => setMatricule(e.target.value.toUpperCase())}
+                  placeholder="EEE333"
                   required
                 />
               </div>
@@ -212,6 +274,7 @@ export default function Signup() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
                 required
+                minLength={6}
               />
             </div>
 
@@ -220,26 +283,28 @@ export default function Signup() {
             </button>
 
             <div className="auth-divider">
-  <span>or</span>
-</div>
+              <span>or</span>
+            </div>
 
-<button
-  type="button"
-  className="google-btn"
-  onClick={loginWithGoogle}
->
-  <img
-    src="https://www.svgrepo.com/show/475656/google-color.svg"
-    alt="Google"
-    width={20}
-    height={20}
-  />
-  Sign up with Google
-</button>
+            <button
+              type="button"
+              className="google-btn"
+              onClick={loginWithGoogle}
+            >
+              <img
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                alt="Google"
+                width={20}
+                height={20}
+              />
+              Sign up with Google
+            </button>
 
             <p className="switch-text">
               Already have an account?
-              <Link className="text-btn-link" to="/auth/login">Sign in</Link>
+              <Link className="text-btn-link" to="/auth/login">
+                Sign in
+              </Link>
             </p>
 
             <p className="help-text">

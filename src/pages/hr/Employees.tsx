@@ -6,6 +6,8 @@ import {
   type EmployeeRecord,
 } from "../../services/employee.service";
 import { getAllDepartments, type Department } from "../../services/departments.service";
+import { useNavigate } from "react-router-dom";
+
 const card: React.CSSProperties = {
   background: "white",
   border: "1px solid #eaecef",
@@ -121,6 +123,7 @@ const IconTrash = () => (
   </svg>
 );
 
+
 type Emp = {
   id: string;
   name: string;
@@ -175,6 +178,18 @@ function getEditFormFromRecord(records: EmployeeRecord[], employeeId: string): E
   };
 }
 
+function getBasePath(): string {
+  try {
+    const u = JSON.parse(localStorage.getItem("user") || "{}");
+    const role = String(u?.role || "").toUpperCase();
+    if (role === "SUPER_MANAGER") return "/super-manager";
+    if (role === "MANAGER") return "/manager";
+    return "/hr";
+  } catch {
+    return "/hr";
+  }
+}
+
 export default function HrEmployees() {
   const [records, setRecords] = useState<EmployeeRecord[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -194,7 +209,7 @@ export default function HrEmployees() {
   });
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
+  const navigate = useNavigate();
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -395,7 +410,13 @@ export default function HrEmployees() {
 
               {paginatedEmployees.map((e) => (
                 <tr key={e.id} style={{ borderTop: "1px solid #eef2f7" }}>
-                  <td style={{ padding: 14, fontWeight: 900 }}>{e.name}</td>
+                  <td
+  style={{ padding: 14, fontWeight: 900, cursor: "pointer", color: "#1f7a5a", textDecoration: "underline" }}
+onClick={() => navigate(`${getBasePath()}/employees/${e.id}`)}
+  title={`Voir le profil de ${e.name}`}
+>
+  {e.name}
+</td>
                   <td style={{ padding: 14, fontWeight: 700, color: "#0f172a" }}>{e.role}</td>
                   <td style={{ padding: 14, fontWeight: 700, color: "#0f172a" }}>{e.department}</td>
                   <td style={{ padding: 14 }}><span style={badge("#e0f2fe", "#0369a1")}>{e.seniority}</span></td>
@@ -613,5 +634,8 @@ export default function HrEmployees() {
       )}
          </div>
     </div>
+
+
+
   );
 }

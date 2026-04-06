@@ -136,6 +136,8 @@ path: "/auth/account-pending", element: <AccountPending />
 
           { path: "profile", element: <Profile /> },
           { path: "notifications", element: <NotificationsPage /> },
+          { path: "employees/:id", element: <Profile /> },
+
         ],
       },
     ],
@@ -164,6 +166,8 @@ path: "/auth/account-pending", element: <AccountPending />
           { path: "skills/assign", element: <AssignSkillPage /> },
           { path: "profile", element: <Profile /> },
           { path: "notifications", element: <NotificationsPage /> },
+          { path: "employees/:id", element: <Profile /> },
+
         ],
       },
     ],
@@ -189,6 +193,7 @@ path: "/auth/account-pending", element: <AccountPending />
           { path: "profile", element: <Profile /> },
             { path: "activities", element: <ManagerActivities /> },
           { path: "notifications", element: <NotificationsPage /> },
+          { path: "employees/:id", element: <Profile /> },
         ],
       },
     ],

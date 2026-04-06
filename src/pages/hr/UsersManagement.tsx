@@ -59,9 +59,10 @@ const PILL_TONES: Record<Tone, { bg: string; bd: string; fg: string }> = {
 };
 
 const BTN_BASE: React.CSSProperties = {
-  padding: "10px 12px",
+  padding: "12px 16px",
   borderRadius: 12,
   fontWeight: 900,
+  fontSize: 16,
   cursor: "pointer",
   border: "1px solid var(--border)",
   background: "#fff",
@@ -94,10 +95,10 @@ function Pill({ text, tone = "neutral" }: { text: string; tone?: Tone }) {
   return (
     <span
       style={{
-        padding: "6px 10px",
+        padding: "8px 12px",
         borderRadius: 999,
         fontWeight: 900,
-        fontSize: 12,
+        fontSize: 14,
         lineHeight: 1,
         whiteSpace: "nowrap",
         background: map.bg,
@@ -748,7 +749,7 @@ const [importOpen, setImportOpen] = useState(false);
             {paginatedUsers.map((u: any, i) => (
               <tr key={u._id} style={{ ...S.tr, background: i % 2 === 1 ? "rgba(248,250,252,0.8)" : "#fff" }}>
                 <td style={S.td}>
-                  <UserAvatar name={u.name} email={u.email} avatarUrl={u.avatarUrl} size={40} />
+                  <UserAvatar name={u.name} email={u.email} avatarUrl={u.avatarUrl} size={60} />
                 </td>
 
                 <td style={{ ...S.td, fontWeight: 800, color: "#0f172a" }}>{u.name}</td>
@@ -1202,30 +1203,30 @@ const S: Record<string, React.CSSProperties> = {
   },
   statsRow: {
     display: "flex",
-    gap: 16,
-    marginBottom: 20,
+    gap: 20,
+    marginBottom: 24,
     flexWrap: "wrap",
   },
   statCard: {
-    flex: "1 1 100px",
-    minWidth: 100,
-    padding: "10px 12px",
-    borderRadius: 12,
+    flex: "1 1 220px",
+    minWidth: 220,
+    padding: "18px 20px",
+    borderRadius: 16,
     background: "#fff",
     border: "1px solid rgba(15,23,42,0.08)",
-    borderLeft: "3px solid rgba(15,23,42,0.12)",
+    borderLeft: "4px solid rgba(15,23,42,0.12)",
   },
   statCardInner: {
     display: "flex",
-    alignItems: "baseline",
+    alignItems: "flex-end",
     justifyContent: "space-between",
-    gap: 12,
+    gap: 16,
   },
-  statValue: { fontSize: 18, fontWeight: 900, color: "#0f172a", lineHeight: 1 },
-  statLabel: { fontSize: 11, fontWeight: 700, color: "#64748b", whiteSpace: "nowrap" },
+  statValue: { fontSize: 34, fontWeight: 900, color: "#0f172a", lineHeight: 1 },
+  statLabel: { fontSize: 16, fontWeight: 800, color: "#64748b", whiteSpace: "nowrap" },
 
-  pageTitle: { fontSize: 22, fontWeight: 900, color: "#0f172a" },
-  pageSubtitle: { fontSize: 14, color: "#64748b", marginTop: 4 },
+  pageTitle: { fontSize: 40, fontWeight: 900, color: "#0f172a", lineHeight: 1.1 },
+  pageSubtitle: { fontSize: 21, fontWeight: 700, color: "#64748b", marginTop: 8, lineHeight: 1.3 },
 
   headerTop: {
     marginBottom: 16,
@@ -1241,16 +1242,16 @@ const S: Record<string, React.CSSProperties> = {
     alignItems: "center",
     flex: "0 0 auto",
   },
-  headerActions: { display: "flex", alignItems: "center", gap: 8, flex: "0 0 auto" },
-  simpleBtn: { borderRadius: 12, fontWeight: 700, border: "1px solid rgba(15,23,42,0.12)", background: "#fff", color: "#0f172a" },
-  addBtn: { borderRadius: 12, fontWeight: 700, background: "rgba(31,122,90,0.10)", border: "1px solid rgba(31,122,90,0.20)", color: "#145a41" },
+  headerActions: { display: "flex", alignItems: "center", gap: 10, flex: "0 0 auto" },
+  simpleBtn: { borderRadius: 12, fontWeight: 800, fontSize: 16, padding: "12px 16px", border: "1px solid rgba(15,23,42,0.12)", background: "#fff", color: "#0f172a" },
+  addBtn: { borderRadius: 12, fontWeight: 800, fontSize: 16, padding: "12px 16px", background: "rgba(31,122,90,0.10)", border: "1px solid rgba(31,122,90,0.20)", color: "#145a41" },
   searchWrap: {
     position: "relative",
     display: "inline-flex",
     alignItems: "center",
   },
-  searchIcon: { position: "absolute", left: 12, fontSize: 14, opacity: 0.6 },
-  searchInput: { minWidth: 260, paddingLeft: 36, borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)" },
+  searchIcon: { position: "absolute", left: 12, fontSize: 16, opacity: 0.6 },
+  searchInput: { minWidth: 320, fontSize: 16, paddingLeft: 40, borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)" },
   refreshBtn: { borderRadius: 12, fontWeight: 800 },
 
   errorBox: {
@@ -1273,7 +1274,7 @@ const S: Record<string, React.CSSProperties> = {
   },
   paginationInfo: {
     color: "#64748b",
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: 700,
   },
   paginationControls: {
@@ -1282,19 +1283,19 @@ const S: Record<string, React.CSSProperties> = {
     gap: 10,
   },
   pageBadge: {
-    padding: "6px 10px",
+    padding: "8px 12px",
     borderRadius: 10,
     border: "1px solid rgba(15,23,42,0.1)",
     background: "#fff",
     color: "#0f172a",
     fontWeight: 800,
-    fontSize: 13,
+    fontSize: 15,
   },
   table: { width: "100%", borderCollapse: "collapse" },
   th: {
-    padding: "14px 12px",
+    padding: "14px 6px",
     textAlign: "left",
-    fontSize: 12,
+    fontSize: 18,
     fontWeight: 900,
     color: "#64748b",
     textTransform: "uppercase",
@@ -1303,8 +1304,8 @@ const S: Record<string, React.CSSProperties> = {
     borderBottom: "1px solid rgba(15,23,42,0.08)",
   },
   tr: { borderBottom: "1px solid rgba(15,23,42,0.06)" },
-  td: { padding: "12px" },
-  roleSelect: { padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(15,23,42,0.12)", fontWeight: 800, fontSize: 13 },
+  td: { padding: "14px 6px", fontSize: 18, fontWeight: 600 },
+  roleSelect: { padding: "10px 10px", borderRadius: 10, border: "1px solid rgba(15,23,42,0.12)", fontWeight: 800, fontSize: 16 },
   actionsGroup: {
     display: "inline-flex",
     flexWrap: "nowrap",
@@ -1329,7 +1330,7 @@ const S: Record<string, React.CSSProperties> = {
   },
   actionBtnPrimary: { color: "#166534", borderRight: "1px solid rgba(15,23,42,0.08)" },
   actionBtnDanger: { color: "#b91c1c", borderRight: "none" },
-  emptyCell: { padding: 32, textAlign: "center", color: "#64748b", fontWeight: 800 },
+  emptyCell: { padding: 32, textAlign: "center", color: "#64748b", fontWeight: 800, fontSize: 18 },
 
   deleteModalCard: {
     background: "#fff",
@@ -1362,8 +1363,8 @@ const S: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     gap: 12,
   },
-  modalTitle: { fontSize: 18, fontWeight: 900, color: "#0f172a" },
+  modalTitle: { fontSize: 26, fontWeight: 900, color: "#0f172a" },
 
-  blockTitle: { fontWeight: 900, marginBottom: 10, color: "#0f172a" },
-  blockValue: { fontWeight: 800, marginBottom: 10, color: "#334155" },
+  blockTitle: { fontWeight: 900, fontSize: 18, marginBottom: 10, color: "#0f172a" },
+  blockValue: { fontWeight: 800, fontSize: 16, marginBottom: 10, color: "#334155" },
 };

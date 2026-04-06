@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { requestPasswordReset } from "../../services/auth.service";
+import SiteNav from "../../components/SiteNav";
+import AuthFooter from "../../components/AuthFooter";
 import "../../auth-pages.css";
 
 const logoSrc = "/images/logo.png";
@@ -56,18 +58,7 @@ export default function ForgotPassword() {
       ))}
       <div className="auth-overlay" />
 
-      <nav className="auth-top-nav">
-        <div className="auth-logo-wrap">
-          <img className="auth-logo-img" src={logoSrc} alt="IntelliHR logo" />
-        </div>
-        <div className="auth-nav-links">
-          <a href="#">Who we are</a>
-          <a href="#">Services</a>
-          <a href="#">Case studies</a>
-          <a href="#">Blog</a>
-        </div>
-        <a href="#" className="auth-nav-btn">Get in touch</a>
-      </nav>
+      <SiteNav />
 
       <div className="auth-hero-content">
         <div className="auth-hero-copy">
@@ -123,6 +114,8 @@ export default function ForgotPassword() {
           </p>
         </div>
       </div>
+
+      <AuthFooter />
     </div>
   );
 }

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { completeGoogleProfile } from "../../services/auth.service";
 import { getAllDepartments } from "../../services/departments.service";
+import SiteNav from "../../components/SiteNav";
+import AuthFooter from "../../components/AuthFooter";
 import "../../auth-pages.css";
 
 const logoSrc = "/images/logo.png";
@@ -81,11 +83,7 @@ export default function CompleteProfile() {
       />
       <div className="auth-overlay" />
 
-      <nav className="auth-top-nav">
-        <div className="auth-logo-wrap">
-          <img className="auth-logo-img" src={logoSrc} alt="IntelliHR logo" />
-        </div>
-      </nav>
+      <SiteNav />
 
       <div className="auth-hero-content">
         <div className="auth-hero-copy">
@@ -159,6 +157,8 @@ export default function CompleteProfile() {
           </form>
         </div>
       </div>
+
+      <AuthFooter />
     </div>
   );
 }

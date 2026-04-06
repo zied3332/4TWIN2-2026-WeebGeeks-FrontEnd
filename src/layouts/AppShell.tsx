@@ -14,7 +14,26 @@ type NavItem = {
 };
 
 function linkClass({ isActive }: { isActive: boolean }) {
-  return `side-link ${isActive ? "active" : ""}`;
+  return `side-link nav-item ${isActive ? "active" : ""}`;
+}
+
+type NavGroup = {
+  title: string;
+  items: NavItem[];
+};
+
+function getNavGroup(label: string) {
+  const text = label.toLowerCase();
+
+  if (text.includes("recommend") || text.includes("copilot")) {
+    return "Intelligence";
+  }
+
+  if (text.includes("notification")) {
+    return "System";
+  }
+
+  return "Main menu";
 }
 
 const FALLBACK_AVATAR = "https://randomuser.me/api/portraits/men/35.jpg";
@@ -116,100 +135,105 @@ export default function AppShell({
 }) {
   const navigate = useNavigate();
 
-  // ✅ fixed sidebar width (same on all roles)
-  const SIDE_W = 272;
+ 
+  const SIDE_W = 350;
+  const workspaceCode = (badge || "HR").replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase() || "HR";
+  const navGroups: NavGroup[] = [
+    { title: "Main menu", items: nav.filter((item) => getNavGroup(item.label) === "Main menu") },
+    { title: "Intelligence", items: nav.filter((item) => getNavGroup(item.label) === "Intelligence") },
+    { title: "System", items: nav.filter((item) => getNavGroup(item.label) === "System") },
+  ].filter((group) => group.items.length > 0);
 
   return (
     <div
-      className="app-shell"
+      className="app-shell workspace-shell"
       style={{
         minHeight: "100vh",
+        ["--side-w" as string]: `${SIDE_W}px`,
       }}
     >
       {/* Sidebar (fixed) */}
-      <aside
-        className="side"
-        style={{
-          width: SIDE_W,
-          position: "fixed",
-          top: 0,
-          left: 0,
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          overflowY: "auto",
-          zIndex: 50,
-        }}
-      >
-     
-        <div className="side-brand">
-          <div className="side-logo-wrap">
-            <img
-              className="side-logo-img"
-              src={logoSrc}
-              alt="IntelliHR logo"
-              style={{ width: 68, height: 68 }}
-            />
+      <aside className="side sidebar">
+        <div className="sidebar-top">
+          <div className="side-brand brand">
+            <div className="dash-logo-wrap">
+              <img
+                className="dash-logo-img"
+                src={logoSrc}
+                alt="IntelliHR logo"
+              />
+            </div>
+            <div className="brand-text">
+              <h1>IntelliHR</h1>
+            </div>
           </div>
-          <span className="badge">{badge}</span>
+
+          <div className="workspace-switcher">
+            <div className="workspace-avatar">{workspaceCode}</div>
+            <div className="workspace-info">
+              <span className="workspace-label">Workspace</span>
+              <strong>{badge}</strong>
+            </div>
+            <span className="workspace-caret" aria-hidden="true"></span>
+          </div>
+
+          <div className="sidebar-search" aria-hidden="true">
+            <span className="search-icon"></span>
+            <input type="text" placeholder="Search" />
+            <span className="search-shortcut">/</span>
+          </div>
         </div>
-        
 
-        <nav className="side-nav" style={{ flex: 1 }}>
-          {nav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={linkClass}
-            >
-              {item.label}
-            </NavLink>
+        <div className="sidebar-menu">
+          {navGroups.map((group) => (
+            <div className="menu-group" key={group.title}>
+              <p className="menu-title">{group.title}</p>
+
+              <nav className="side-nav">
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    className={linkClass}
+                  >
+                    <span className="side-link-icon" aria-hidden="true">
+                      <NavItemIcon label={item.label} />
+                    </span>
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))}
+              </nav>
+            </div>
           ))}
-        </nav>
+        </div>
 
-        {/* Bottom section */}
-        <div style={{ padding: "12px" }}>
+        <div className="sidebar-bottom">
+          {userCard ? (
+            <div className="user-card">
+              <SidebarAvatar
+                avatarUrl={userCard.avatarUrl}
+                name={userCard.name}
+              />
+
+              <div className="user-meta">
+                <strong>{userCard.name}</strong>
+                <span>{userCard.sub || badge}</span>
+              </div>
+
+              {sidebarFooter ? <div className="user-extra">{sidebarFooter}</div> : null}
+            </div>
+          ) : null}
+
           <button
-            className="btn btn-danger-outline w-full"
+            className="logout-btn"
             type="button"
             onClick={() => signOut(navigate)}
-            style={{
-              borderColor: "rgba(239,68,68,0.35)",
-              color: "#ef4444",
-              fontWeight: 800,
-            }}
           >
             Sign out
           </button>
 
-          {userCard ? (
-            <div className="side-footer" style={{ marginTop: 12 }}>
-              <div className="muted" style={{ margin: 0 }}>
-                Signed in as
-              </div>
-
-              <div className="side-user">
-                <SidebarAvatar
-                  avatarUrl={userCard.avatarUrl}
-                  name={userCard.name}
-                />
-                <div>
-                  <div className="side-name">{userCard.name}</div>
-                  {userCard.sub ? (
-                    <div className="side-sub" style={{ color: "var(--muted)" }}>
-                      {userCard.sub}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-      
-              {sidebarFooter ? (
-                <div style={{ marginTop: 12 }}>{sidebarFooter}</div>
-              ) : null}
-            </div>
-          ) : sidebarFooter ? (
+          {!userCard && sidebarFooter ? (
             <div className="side-footer" style={{ marginTop: 12 }}>
               {sidebarFooter}
             </div>
@@ -218,49 +242,37 @@ export default function AppShell({
       </aside>
 
       {/* Main */}
-      <div
-        className="main"
-        style={{
-          marginLeft: SIDE_W,
-          minHeight: "100vh",
-        }}
-      >
-        {/* ✅ Topbar (sticky) - FIXED BACKGROUND */}
-        <div
-          className="main-topbar"
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 40,
+      <div className="main">
+        <header className="main-topbar topbar">
+          <div className="topbar-left">
+            <button className="mobile-menu-btn" type="button" aria-label="Open menu">
+              ☰
+            </button>
 
-            // ✅ ADD THESE:
-            background: "#ffffff",
-            borderBottom: "1px solid #e5e7eb",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
-          }}
-        >
-          <div>
-            <div className="main-title">{title}</div>
-            {subtitle ? <div className="main-sub">{subtitle}</div> : null}
+            <div>
+              <h2 className="main-title">{title}</h2>
+              {subtitle ? <div className="main-sub">{subtitle}</div> : null}
+            </div>
           </div>
 
-          <div
-            className="topbar-actions"
-            style={{ display: "flex", gap: 10, alignItems: "center" }}
-          >
+          <div className="topbar-right topbar-actions">
+            <div className="topbar-search" aria-hidden="true">
+              <span className="search-icon"></span>
+              <input type="text" placeholder="Search workspace..." />
+            </div>
+
             <NotificationBell />
-            {topbarRight}
+           
 
             <NavLink
               to={profilePath}
-              className="btn btn-ghost"
-              style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+              className="profile-btn"
             >
               <ProfileIcon />
               Profile
             </NavLink>
           </div>
-        </div>
+        </header>
 
         {/* Page content */}
         <div className="main-content">
@@ -268,5 +280,71 @@ export default function AppShell({
         </div>
       </div>
     </div>
+  );
+}
+
+function NavItemIcon({ label }: { label: string }) {
+  const text = label.toLowerCase();
+
+  if (text.includes("dashboard")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2" />
+        <rect x="13" y="3" width="8" height="5" rx="2" stroke="currentColor" strokeWidth="2" />
+        <rect x="13" y="10" width="8" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
+        <rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2" />
+      </svg>
+    );
+  }
+
+  if (text.includes("activit")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="5" width="16" height="15" rx="3" stroke="currentColor" strokeWidth="2" />
+        <path d="M8 3V7M16 3V7M8 12H16M8 16H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (text.includes("user") || text.includes("employee") || text.includes("team")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 21V19C16 16.8 14.2 15 12 15H7C4.8 15 3 16.8 3 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="9.5" cy="8" r="3" stroke="currentColor" strokeWidth="2" />
+        <path d="M17 11C18.7 11 20 9.7 20 8C20 6.3 18.7 5 17 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (text.includes("skill")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 7L12 3L21 12L17 16L8 7Z" stroke="currentColor" strokeWidth="2" />
+        <path d="M3 21L9 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (text.includes("recommend") || text.includes("copilot") || text.includes("analytic")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 3L14.8 8.2L20.5 9.1L16.3 13.1L17.3 18.8L12 16L6.7 18.8L7.7 13.1L3.5 9.1L9.2 8.2L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (text.includes("notification")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 9C6 5.7 8.7 3 12 3C15.3 3 18 5.7 18 9V13L20 15V16H4V15L6 13V9Z" stroke="currentColor" strokeWidth="2" />
+        <path d="M10 19C10.4 20.2 11.1 21 12 21C12.9 21 13.6 20.2 14 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 12H19M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   );
 }

@@ -1,6 +1,7 @@
 // src/router/router.tsx
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 
+import LandingPage from "../pages/LandingPage";
 import AuthLayout from "../pages/auth/AuthLayout";
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
@@ -92,7 +93,7 @@ function NotificationsRedirect() {
 }
 
 export const router = createBrowserRouter([
-  { path: "/", element: <Navigate to="/auth/login" replace /> },
+  { path: "/", element: <LandingPage /> },
   { path: "/403", element: <Forbidden /> },
 
   {

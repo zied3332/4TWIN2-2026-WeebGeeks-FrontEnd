@@ -1,5 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import SiteNav from "../../components/SiteNav";
+import AuthFooter from "../../components/AuthFooter";
 import "../../auth-pages.css";
 
 const logoSrc = "/images/logo.png";
@@ -12,6 +14,8 @@ export default function AccountPending() {
         style={{ backgroundImage: `url("/images/bg1.png")` }}
       />
       <div className="auth-overlay" />
+
+      <SiteNav />
 
       <div className="auth-hero-content auth-centered-content">
         <div className="modern-auth-card pending-card">
@@ -43,6 +47,8 @@ export default function AccountPending() {
           </p>
         </div>
       </div>
+
+      <AuthFooter />
     </div>
   );
 }

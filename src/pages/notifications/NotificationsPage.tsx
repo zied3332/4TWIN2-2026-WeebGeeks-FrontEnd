@@ -1,11 +1,56 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { FiMoreHorizontal } from 'react-icons/fi';
 import { useNotifications } from '../../hooks/useNotifications';
 import type { AppNotification, NotificationChange } from '../../types/notification';
 import { getActivityById, type ActivityRecord } from '../../services/activities.service';
 import { getAllDepartments } from '../../services/departments.service';
 
 type FilterType = 'ALL' | 'UNREAD' | 'READ';
+type AccountApprovalDecision = 'PENDING' | 'APPROVED' | 'REJECTED' | 'UNKNOWN';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+function normalizeApprovalDecision(value: unknown): AccountApprovalDecision {
+  const normalized = String(value || '').trim().toUpperCase();
+  if (normalized === 'PENDING') return 'PENDING';
+  if (normalized === 'APPROVED') return 'APPROVED';
+  if (normalized === 'REJECTED') return 'REJECTED';
+  return 'UNKNOWN';
+}
+
+function formatApprovalDecision(value: AccountApprovalDecision) {
+  if (value === 'APPROVED') return 'Approved';
+  if (value === 'REJECTED') return 'Rejected';
+  if (value === 'PENDING') return 'Pending';
+  return 'Unknown';
+}
+
+function getRequestedUserId(notification: AppNotification | null) {
+  if (!notification || notification.type !== 'ACCOUNT_APPROVAL_REQUEST') return '';
+  const metadata = notification.metadata || {};
+  return typeof metadata.requestedUserId === 'string' ? metadata.requestedUserId : '';
+}
+
+function normalizeSideView(value: unknown): 'unread' | 'read' | null {
+  const side = String(value || '').trim().toLowerCase();
+  if (side === 'unread' || side === 'read') return side;
+  return null;
+}
+
+function getNotificationsBasePath(pathname: string) {
+  const roleBase = pathname.match(/^\/(hr|super-manager|manager|me)\//i)?.[1];
+  if (roleBase) return `/${roleBase}/notifications`;
+  return '/notifications';
+}
+
+function getNotificationsRoleFromPath(pathname: string) {
+  const roleBase = pathname.match(/^\/(hr|super-manager|manager|me)\//i)?.[1]?.toLowerCase();
+  if (roleBase === 'hr' || roleBase === 'super-manager' || roleBase === 'manager' || roleBase === 'me') {
+    return roleBase;
+  }
+  return 'unknown';
+}
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
@@ -195,6 +240,8 @@ function NotificationDetailModal({
   onOpenLinkedPage,
   onApproveRequest,
   onRejectRequest,
+  accountRequestStatus = 'UNKNOWN',
+  accountRequestStatusLoading = false,
   actionLoading = false,
 }: {
   notification: AppNotification;
@@ -202,6 +249,8 @@ function NotificationDetailModal({
   onOpenLinkedPage?: () => void;
   onApproveRequest?: (userId: string) => void | Promise<void>;
   onRejectRequest?: (userId: string) => void | Promise<void>;
+  accountRequestStatus?: AccountApprovalDecision;
+  accountRequestStatusLoading?: boolean;
   actionLoading?: boolean;
 }) {
   const metadata = notification.metadata || {};
@@ -213,6 +262,12 @@ function NotificationDetailModal({
   const isAccountApprovalRequest = notification.type === 'ACCOUNT_APPROVAL_REQUEST';
   const requestedUserId =
     typeof metadata.requestedUserId === 'string' ? metadata.requestedUserId : '';
+  const metadataApprovalStatus = normalizeApprovalDecision(metadata.status);
+  const resolvedApprovalStatus = accountRequestStatus === 'UNKNOWN'
+    ? metadataApprovalStatus
+    : accountRequestStatus;
+  const isFinalAccountDecision = resolvedApprovalStatus === 'APPROVED' || resolvedApprovalStatus === 'REJECTED';
+  const canTakeAccountDecision = isAccountApprovalRequest && requestedUserId && !isFinalAccountDecision;
 
   const [activityDetails, setActivityDetails] = useState<ActivityRecord | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
@@ -360,6 +415,16 @@ function NotificationDetailModal({
               <span className="notifications-detail-label">Received</span>
               <strong>{new Date(notification.createdAt).toLocaleString()}</strong>
             </div>
+            {isAccountApprovalRequest ? (
+              <div className="notifications-detail-summary-item">
+                <span className="notifications-detail-label">Request decision</span>
+                <strong>
+                  {accountRequestStatusLoading
+                    ? 'Checking...'
+                    : formatApprovalDecision(resolvedApprovalStatus)}
+                </strong>
+              </div>
+            ) : null}
             {metadata.actorName ? (
               <div className="notifications-detail-summary-item">
                 <span className="notifications-detail-label">Updated by</span>
@@ -452,7 +517,7 @@ function NotificationDetailModal({
         </div>
 
         <div className="modal-footer">
-          {isAccountApprovalRequest && requestedUserId ? (
+          {canTakeAccountDecision ? (
             <>
               <button
                 type="button"
@@ -473,12 +538,6 @@ function NotificationDetailModal({
             </>
           ) : null}
 
-          {notification.link ? (
-            <button type="button" className="btn btn-ghost" onClick={onOpenLinkedPage}>
-              Open related page
-            </button>
-          ) : null}
-
           <button type="button" className="btn btn-primary" onClick={onClose} disabled={actionLoading}>
             Close
           </button>
@@ -491,6 +550,7 @@ function NotificationDetailModal({
 export default function NotificationsPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { side: routeSide } = useParams<{ side?: string }>();
   const {
     notifications,
     loading,
@@ -503,12 +563,49 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState<FilterType>('ALL');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [showAllUnread, setShowAllUnread] = useState(false);
-  const [showAllRead, setShowAllRead] = useState(false);
+  const [roleFilter, setRoleFilter] = useState('ALL');
+  const [departmentFilter, setDepartmentFilter] = useState('ALL');
+  const [departmentNamesById, setDepartmentNamesById] = useState<Record<string, string>>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedNotification, setSelectedNotification] = useState<AppNotification | null>(null);
   const [requestActionLoading, setRequestActionLoading] = useState(false);
+  const [accountRequestStatusByUserId, setAccountRequestStatusByUserId] = useState<Record<string, AccountApprovalDecision>>({});
+  const [accountRequestStatusLoading, setAccountRequestStatusLoading] = useState(false);
   const openedFromStateRef = useRef<string | null>(null);
+
+  const notificationsBasePath = useMemo(() => getNotificationsBasePath(location.pathname), [location.pathname]);
+  const notificationsRole = useMemo(() => getNotificationsRoleFromPath(location.pathname), [location.pathname]);
+  const canFilterByDepartment = notificationsRole === 'hr' || notificationsRole === 'super-manager';
+  const isStatusRoute = useMemo(() => Boolean(normalizeSideView(routeSide)), [routeSide]);
+
+  const activeSideView = useMemo(() => {
+    const fromRoute = normalizeSideView(routeSide);
+    if (fromRoute) return fromRoute;
+    const params = new URLSearchParams(location.search || '');
+    return normalizeSideView(params.get('side'));
+  }, [location.search, routeSide]);
+
+  useEffect(() => {
+    let active = true;
+    getAllDepartments()
+      .then((rows) => {
+        if (!active) return;
+        const map: Record<string, string> = {};
+        for (const row of Array.isArray(rows) ? rows : []) {
+          if (!row?._id) continue;
+          map[String(row._id)] = String(row.name || row.code || 'Department');
+        }
+        setDepartmentNamesById(map);
+      })
+      .catch(() => {
+        if (!active) return;
+        setDepartmentNamesById({});
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -517,6 +614,12 @@ export default function NotificationsPage() {
     return () => clearTimeout(timeout);
   }, [search]);
 
+  useEffect(() => {
+    if (!canFilterByDepartment) {
+      setDepartmentFilter('ALL');
+    }
+  }, [canFilterByDepartment]);
+
   const {
     unreadCount,
     readCount,
@@ -524,9 +627,68 @@ export default function NotificationsPage() {
     filteredNotifications,
     unreadNotifications,
     readNotifications,
+    roleOptions,
+    departmentOptions,
   } = useMemo(() => {
     const query = normalizeText(debouncedSearch);
     const todayKey = new Date().toDateString();
+    const roleSet = new Set<string>();
+    const departmentSet = new Set<string>();
+
+    const normalizeRole = (value: unknown) => String(value || '')
+      .trim()
+      .replaceAll('-', '_')
+      .replaceAll(' ', '_')
+      .toUpperCase();
+
+    const extractRole = (item: AppNotification) => {
+      const metadata = item.metadata || {};
+      const direct = normalizeRole(
+        metadata.updatedByRole || metadata.actorRole || metadata.role || metadata.requestedUserRole
+      );
+      if (direct) return direct;
+
+      const changes = Array.isArray(metadata.changes) ? metadata.changes as NotificationChange[] : [];
+      const roleChange = changes.find((change) => String(change.field || '').toLowerCase() === 'role');
+      const fromChange = normalizeRole(roleChange?.after ?? roleChange?.before ?? '');
+      if (fromChange) return fromChange;
+
+      const messageRole = /\b(super[_\s-]?manager|manager|employee|hr)\b/i.exec(`${item.title} ${item.message}`)?.[1] || '';
+      const fromText = normalizeRole(messageRole);
+      return fromText || 'UNKNOWN';
+    };
+
+    const extractDepartment = (item: AppNotification) => {
+      const metadata = item.metadata || {};
+      const resolveDepartmentValue = (value: unknown) => {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        if (departmentNamesById[raw]) return departmentNamesById[raw];
+        if (/^[a-f0-9]{24}$/i.test(raw)) return '';
+        return raw;
+      };
+
+      const direct = resolveDepartmentValue(
+        metadata.departmentName ||
+        metadata.department ||
+        metadata.departmentId ||
+        metadata.requestedUserDepartment ||
+        metadata.requestedUserDepartmentId ||
+        metadata.employeeDepartment ||
+        metadata.employeeDepartmentId
+      );
+      if (direct) return direct;
+
+      const changes = Array.isArray(metadata.changes) ? metadata.changes as NotificationChange[] : [];
+      const deptChange = changes.find((change) => {
+        const field = String(change.field || '').toLowerCase();
+        return field === 'department' || field === 'departmentname';
+      });
+      const fromChange = resolveDepartmentValue(deptChange?.after ?? deptChange?.before ?? '');
+      if (fromChange) return fromChange;
+
+      return 'Unknown Department';
+    };
 
     let unread = 0;
     let read = 0;
@@ -534,6 +696,11 @@ export default function NotificationsPage() {
     const filtered: AppNotification[] = [];
 
     for (const item of notifications) {
+      const role = extractRole(item);
+      const department = extractDepartment(item);
+      roleSet.add(role);
+      departmentSet.add(department);
+
       if (item.isRead) read += 1;
       else unread += 1;
 
@@ -543,8 +710,10 @@ export default function NotificationsPage() {
       }
 
       if (!matchesFilter(item, filter)) continue;
+      if (roleFilter !== 'ALL' && role !== roleFilter) continue;
+      if (canFilterByDepartment && departmentFilter !== 'ALL' && department !== departmentFilter) continue;
       if (query) {
-        const haystack = normalizeText(`${item.title} ${item.message} ${item.type}`);
+        const haystack = normalizeText(`${item.title} ${item.message} ${item.type} ${role} ${department}`);
         if (!haystack.includes(query)) continue;
       }
 
@@ -569,8 +738,10 @@ export default function NotificationsPage() {
       filteredNotifications: filtered,
       unreadNotifications: unreadTop,
       readNotifications: readTop,
+      roleOptions: Array.from(roleSet).sort((a, b) => a.localeCompare(b)),
+      departmentOptions: Array.from(departmentSet).sort((a, b) => a.localeCompare(b)),
     };
-  }, [notifications, filter, debouncedSearch]);
+  }, [notifications, filter, debouncedSearch, roleFilter, departmentFilter, departmentNamesById, canFilterByDepartment]);
 
   const handleClick = useCallback(async (notification: AppNotification) => {
     setSelectedNotification(notification);
@@ -612,10 +783,60 @@ export default function NotificationsPage() {
     });
   }, [deleteOneNotification]);
 
-  const unreadTopFive = useMemo(() => unreadNotifications.slice(0, 5), [unreadNotifications]);
-  const readTopFive = useMemo(() => readNotifications.slice(0, 5), [readNotifications]);
-  const unreadSideList = showAllUnread ? unreadNotifications : unreadTopFive;
-  const readSideList = showAllRead ? readNotifications : readTopFive;
+  const unreadPreview = useMemo(() => unreadNotifications.slice(0, 4), [unreadNotifications]);
+  const readPreview = useMemo(() => readNotifications.slice(0, 4), [readNotifications]);
+
+  const openSideView = useCallback((side: 'unread' | 'read') => {
+    navigate(`${notificationsBasePath}/${side}`);
+  }, [navigate, notificationsBasePath]);
+
+  const clearSideView = useCallback(() => {
+    navigate(notificationsBasePath);
+  }, [navigate, notificationsBasePath]);
+
+  const feedNotifications = useMemo(() => {
+    if (activeSideView === 'unread') return unreadNotifications;
+    if (activeSideView === 'read') return readNotifications;
+    return filteredNotifications;
+  }, [activeSideView, unreadNotifications, readNotifications, filteredNotifications]);
+
+  const selectedInFeedCount = useMemo(() => {
+    let count = 0;
+    for (const item of feedNotifications) {
+      if (selectedIds.has(item._id)) count += 1;
+    }
+    return count;
+  }, [feedNotifications, selectedIds]);
+
+  const allFeedSelected = feedNotifications.length > 0 && selectedInFeedCount === feedNotifications.length;
+
+  const selectAllVisible = useCallback(() => {
+    setSelectedIds(new Set(feedNotifications.map((item) => item._id)));
+  }, [feedNotifications]);
+
+  const clearVisibleSelection = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const item of feedNotifications) {
+        next.delete(item._id);
+      }
+      return next;
+    });
+  }, [feedNotifications]);
+
+  const markSelectedAsRead = useCallback(async () => {
+    const ids = feedNotifications
+      .filter((item) => selectedIds.has(item._id) && !item.isRead)
+      .map((item) => item._id);
+    if (!ids.length) return;
+
+    await Promise.all(ids.map((id) => markOneAsRead(id)));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) next.delete(id);
+      return next;
+    });
+  }, [feedNotifications, selectedIds, markOneAsRead]);
 
   useEffect(() => {
     const state = location.state as NotificationLocationState | null;
@@ -706,20 +927,75 @@ export default function NotificationsPage() {
     navigate(selectedNotification.link);
   }, [navigate, selectedNotification]);
 
+  useEffect(() => {
+    const requestedUserId = getRequestedUserId(selectedNotification);
+    if (!requestedUserId) {
+      setAccountRequestStatusLoading(false);
+      return;
+    }
+
+    let active = true;
+    setAccountRequestStatusLoading(true);
+
+    const token = localStorage.getItem('token');
+    const headers: HeadersInit = token
+      ? { Authorization: `Bearer ${token}` }
+      : {};
+
+    fetch(`${API_BASE}/users/${requestedUserId}`, { headers })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return res.json().catch(() => null);
+      })
+      .then((user) => {
+        if (!active) return;
+        const status = normalizeApprovalDecision(user?.approvalStatus);
+        setAccountRequestStatusByUserId((prev) => ({
+          ...prev,
+          [requestedUserId]: status,
+        }));
+      })
+      .catch(() => {
+        if (!active) return;
+        setAccountRequestStatusByUserId((prev) => ({
+          ...prev,
+          [requestedUserId]: normalizeApprovalDecision(selectedNotification?.metadata?.status),
+        }));
+      })
+      .finally(() => {
+        if (!active) return;
+        setAccountRequestStatusLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedNotification]);
+
   const handleApproveRequest = useCallback(async (userId: string) => {
     const confirmed = window.confirm('Approve this account request?');
     if (!confirmed) return;
 
     try {
       setRequestActionLoading(true);
-      await fetch(`http://localhost:3000/users/${userId}/approve`, {
-  method: 'PATCH',
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
-  },
-});
-      window.alert('Approve action UI is ready. Backend endpoint will be connected next.');
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
+      const res = await fetch(`${API_BASE}/users/${userId}/approve`, {
+        method: 'PATCH',
+        headers,
+      });
+      if (!res.ok) {
+        throw new Error('Failed to approve account request.');
+      }
+
+      setAccountRequestStatusByUserId((prev) => ({ ...prev, [userId]: 'APPROVED' }));
+      window.alert('Account request approved.');
       closeDetailModal();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to approve account request.';
+      window.alert(message);
     } finally {
       setRequestActionLoading(false);
     }
@@ -731,13 +1007,24 @@ export default function NotificationsPage() {
 
     try {
       setRequestActionLoading(true);
-await fetch(`http://localhost:3000/users/${userId}/reject`, {
-  method: 'PATCH',
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
-  },
-});      window.alert('Reject action UI is ready. Backend endpoint will be connected next.');
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
+      const res = await fetch(`${API_BASE}/users/${userId}/reject`, {
+        method: 'PATCH',
+        headers,
+      });
+      if (!res.ok) {
+        throw new Error('Failed to reject account request.');
+      }
+
+      setAccountRequestStatusByUserId((prev) => ({ ...prev, [userId]: 'REJECTED' }));
+      window.alert('Account request rejected.');
       closeDetailModal();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to reject account request.';
+      window.alert(message);
     } finally {
       setRequestActionLoading(false);
     }
@@ -748,26 +1035,23 @@ await fetch(`http://localhost:3000/users/${userId}/reject`, {
       <div className="container">
         <div className="section-head" style={{ marginBottom: 12 }}>
           <div>
-            <div className="header-title" style={{ fontSize: 26 }}>
-              Notifications Center
+            <div className="header-title" style={{ fontSize: 34 }}>
+              {activeSideView === 'unread'
+                ? 'Unread Notifications Page'
+                : activeSideView === 'read'
+                  ? 'Read Notifications Page'
+                  : 'Notifications Center'}
             </div>
-            <div className="muted" style={{ marginTop: 4 }}>
-              Stay updated with requests, approvals, skill changes, and activity alerts.
+            <div className="muted" style={{ marginTop: 8, fontSize: 18 }}>
+              {activeSideView
+                ? 'Dedicated page for this notification status.'
+                : 'Stay updated with requests, approvals, skill changes, and activity alerts.'}
             </div>
             <div className="sr-only" aria-live="polite">
               You have {unreadCount} unread notifications.
             </div>
           </div>
 
-          <div className="hr-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="btn btn-primary btn-small"
-              onClick={markEverythingAsRead}
-            >
-              Mark all as read
-            </button>
-          </div>
         </div>
 
         <div className="kpi-grid">
@@ -790,22 +1074,26 @@ await fetch(`http://localhost:3000/users/${userId}/reject`, {
           </div>
         </div>
 
-        <div className="hr-grid" style={{ marginTop: 14 }}>
+        <div className={isStatusRoute ? '' : 'hr-grid'} style={{ marginTop: 14 }}>
           <div>
             <div className="card section-card">
               <div className="section-head">
-                <div className="section-title">Notification Feed</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <span className="muted">{filteredNotifications.length} items</span>
+                <div className="section-title">
+                  {activeSideView === 'unread'
+                    ? 'Unread Notifications - Full View'
+                    : activeSideView === 'read'
+                      ? 'Recently Read - Full View'
+                      : 'Notification Feed'}
+                </div>
+                {activeSideView ? (
                   <button
                     type="button"
-                    className="btn btn-ghost btn-small"
-                    onClick={deleteSelected}
-                    disabled={selectedIds.size === 0}
+                    className="btn btn-ghost btn-small notifications-action-back"
+                    onClick={clearSideView}
                   >
-                    Delete selected {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
+                    Back to all notifications
                   </button>
-                </div>
+                ) : null}
               </div>
 
               <div className="tabs" style={{ marginBottom: 14 }} role="tablist" aria-label="Notification filters">
@@ -841,7 +1129,7 @@ await fetch(`http://localhost:3000/users/${userId}/reject`, {
                 </button>
               </div>
 
-              <div className="skills-toolbar" style={{ marginBottom: 16 }}>
+              <div className="notifications-feed-filters" style={{ marginBottom: 16 }}>
                 <div className="skills-search-wrapper" style={{ width: '100%' }}>
                   <span className="skills-search-icon">⌕</span>
                   <input
@@ -850,23 +1138,84 @@ await fetch(`http://localhost:3000/users/${userId}/reject`, {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="skills-search-input"
+                    style={{
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                      borderColor: 'var(--input-border)',
+                    }}
                   />
                 </div>
+
+                <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  className="select notifications-filter-select"
+                  aria-label="Filter notifications by role"
+                >
+                  <option value="ALL">All Roles</option>
+                  {roleOptions.map((role) => (
+                    <option key={role} value={role}>
+                      {role.replaceAll('_', ' ')}
+                    </option>
+                  ))}
+                </select>
+
+                {canFilterByDepartment ? (
+                  <select
+                    value={departmentFilter}
+                    onChange={(e) => setDepartmentFilter(e.target.value)}
+                    className="select notifications-filter-select"
+                    aria-label="Filter notifications by department"
+                  >
+                    <option value="ALL">All Departments</option>
+                    {departmentOptions.map((department) => (
+                      <option key={department} value={department}>{department}</option>
+                    ))}
+                  </select>
+                ) : null}
+              </div>
+
+              <div className="notifications-actions-row" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-small notifications-action-select"
+                  onClick={allFeedSelected ? clearVisibleSelection : selectAllVisible}
+                  disabled={feedNotifications.length === 0}
+                >
+                  {allFeedSelected ? 'Clear selection' : 'Select all'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-small notifications-action-read"
+                  onClick={markSelectedAsRead}
+                  disabled={selectedInFeedCount === 0}
+                >
+                  Mark selected as read
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-small notifications-action-delete"
+                  onClick={deleteSelected}
+                  disabled={selectedIds.size === 0}
+                >
+                  Delete selected {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
+                </button>
               </div>
 
               {loading ? (
                 <div className="empty-state">Loading notifications...</div>
-              ) : filteredNotifications.length === 0 ? (
+              ) : feedNotifications.length === 0 ? (
                 <div className="empty-state">No notifications available.</div>
               ) : (
                 <div className="notifications-page-list">
                   <div id="notifications-feed" className="sr-only" />
-                  {filteredNotifications.map(renderNotificationCard)}
+                  {feedNotifications.map(renderNotificationCard)}
                 </div>
               )}
             </div>
           </div>
 
+          {!isStatusRoute ? (
           <div className="hr-right">
             <div className="card section-card">
               <div className="section-head">
@@ -880,7 +1229,7 @@ await fetch(`http://localhost:3000/users/${userId}/reject`, {
                 <div className="notification-empty">No unread notifications.</div>
               ) : (
                 <div className="stack">
-                  {unreadSideList.map((item) => (
+                  {unreadPreview.map((item) => (
                     <button
                       key={item._id}
                       type="button"
@@ -895,15 +1244,14 @@ await fetch(`http://localhost:3000/users/${userId}/reject`, {
                       <span className="notification-dot" aria-hidden="true" />
                     </button>
                   ))}
-                  {unreadNotifications.length > 5 && (
+                  {unreadNotifications.length > 4 && (
                     <button
                       type="button"
                       className="btn btn-ghost btn-small"
-                      onClick={() => setShowAllUnread((prev) => !prev)}
-                      aria-pressed={showAllUnread}
-                      aria-label={showAllUnread ? 'Show fewer unread notifications' : 'Show all unread notifications'}
+                      onClick={() => openSideView('unread')}
+                      aria-label="Open full unread notifications page"
                     >
-                      {showAllUnread ? 'See less' : `See more (${unreadNotifications.length - 5})`}
+                      <FiMoreHorizontal size={16} />
                     </button>
                   )}
                 </div>
@@ -922,7 +1270,7 @@ await fetch(`http://localhost:3000/users/${userId}/reject`, {
                 <div className="notification-empty">No read notifications yet.</div>
               ) : (
                 <div className="stack">
-                  {readSideList.map((item) => (
+                  {readPreview.map((item) => (
                     <button
                       key={item._id}
                       type="button"
@@ -939,49 +1287,22 @@ await fetch(`http://localhost:3000/users/${userId}/reject`, {
                       </span>
                     </button>
                   ))}
-                  {readNotifications.length > 5 && (
+                  {readNotifications.length > 4 && (
                     <button
                       type="button"
                       className="btn btn-ghost btn-small"
-                      onClick={() => setShowAllRead((prev) => !prev)}
-                      aria-pressed={showAllRead}
-                      aria-label={showAllRead ? 'Show fewer read notifications' : 'Show all read notifications'}
+                      onClick={() => openSideView('read')}
+                      aria-label="Open full read notifications page"
                     >
-                      {showAllRead ? 'See less' : `See more (${readNotifications.length - 5})`}
+                      <FiMoreHorizontal size={16} />
                     </button>
                   )}
                 </div>
               )}
             </div>
 
-            <div className="card section-card">
-              <div className="section-head">
-                <div className="section-title">Notification Tips</div>
-              </div>
-
-              <div className="stack">
-                <div className="history-item">
-                  <div>
-                    <div className="history-title">Requests & approvals</div>
-                    <div className="history-date">
-                      Managers, HR, and employees will all see workflow updates here.
-                    </div>
-                  </div>
-                  <span className="badge badge-high">Live</span>
-                </div>
-
-                <div className="history-item">
-                  <div>
-                    <div className="history-title">Skills & certifications</div>
-                    <div className="history-date">
-                      Use this center for pending skill approvals and training alerts.
-                    </div>
-                  </div>
-                  <span className="badge badge-medium">Ready</span>
-                </div>
-              </div>
-            </div>
           </div>
+          ) : null}
         </div>
 
         {selectedNotification ? (
@@ -991,6 +1312,8 @@ await fetch(`http://localhost:3000/users/${userId}/reject`, {
             onOpenLinkedPage={openLinkedPage}
             onApproveRequest={handleApproveRequest}
             onRejectRequest={handleRejectRequest}
+            accountRequestStatus={accountRequestStatusByUserId[getRequestedUserId(selectedNotification)] || 'UNKNOWN'}
+            accountRequestStatusLoading={accountRequestStatusLoading}
             actionLoading={requestActionLoading}
           />
         ) : null}

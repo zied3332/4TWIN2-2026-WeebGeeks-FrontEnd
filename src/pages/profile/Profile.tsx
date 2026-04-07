@@ -323,7 +323,7 @@ function Input({
 }) {
   return (
     <div style={{ display: "grid", gap: 6 }}>
-      <div style={{ fontSize: 12, fontWeight: 900, color: "#475569" }}>{label}</div>
+      <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)" }}>{label}</div>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -333,14 +333,14 @@ function Input({
         style={{
           padding: "11px 12px",
           borderRadius: 12,
-          border: "1px solid #e6ebf1",
-          background: disabled ? "rgba(241,245,249,0.7)" : "#fff",
-          color: "#0f172a",
+          border: "1px solid color-mix(in srgb, var(--border) 72%, transparent)",
+          background: disabled ? "var(--surface-2)" : "var(--surface)",
+          color: "var(--text)",
           fontWeight: 800,
           outline: "none",
         }}
       />
-      {hint ? <div style={{ fontSize: 12, color: "#64748b" }}>{hint}</div> : null}
+      {hint ? <div style={{ fontSize: 12, color: "var(--muted)" }}>{hint}</div> : null}
     </div>
   );
 }
@@ -352,8 +352,8 @@ function Input({
 
 const L = {
   hero: {
-    border: "1px solid rgba(15,23,42,0.08)",
-    background: "#fff",
+    border: "1px solid color-mix(in srgb, var(--border) 78%, transparent)",
+    background: "var(--surface)",
     borderRadius: 18,
     padding: 18,
     boxShadow: "0 18px 50px rgba(15,23,42,0.06)",
@@ -364,8 +364,8 @@ const L = {
     gap: 16,
     alignItems: "center",
   } as React.CSSProperties,
-  heroName: { fontSize: 34, fontWeight: 950, color: "#0f172a", lineHeight: 1.1 } as React.CSSProperties,
-  heroRole: { fontSize: 16, fontWeight: 900, color: "#475569" } as React.CSSProperties,
+  heroName: { fontSize: 34, fontWeight: 950, color: "var(--text)", lineHeight: 1.1 } as React.CSSProperties,
+  heroRole: { fontSize: 16, fontWeight: 900, color: "var(--muted)" } as React.CSSProperties,
   metaRow: { display: "flex", flexWrap: "wrap", gap: 10, marginTop: 10 } as React.CSSProperties,
   metaChip: {
     display: "inline-flex",
@@ -373,17 +373,17 @@ const L = {
     gap: 8,
     padding: "8px 10px",
     borderRadius: 12,
-    border: "1px solid rgba(15,23,42,0.08)",
-    background: "rgba(241,245,249,0.55)",
+    border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)",
+    background: "var(--surface-2)",
     fontWeight: 900,
-    color: "#0f172a",
+    color: "var(--text)",
     cursor: "pointer",
     userSelect: "none",
   } as React.CSSProperties,
   tabs: {
     display: "flex",
     gap: 10,
-    borderTop: "1px solid rgba(15,23,42,0.06)",
+    borderTop: "1px solid color-mix(in srgb, var(--border) 62%, transparent)",
     marginTop: 16,
     paddingTop: 14,
     flexWrap: "wrap",
@@ -392,9 +392,9 @@ const L = {
     ({
       padding: "10px 12px",
       borderRadius: 12,
-      border: active ? "1px solid rgba(22,163,74,0.35)" : "1px solid rgba(15,23,42,0.08)",
-      background: active ? "rgba(22,163,74,0.08)" : "#fff",
-      color: "#0f172a",
+      border: active ? "1px solid color-mix(in srgb, var(--primary) 38%, var(--border))" : "1px solid color-mix(in srgb, var(--border) 70%, transparent)",
+      background: active ? "color-mix(in srgb, var(--primary) 18%, var(--surface))" : "var(--surface)",
+      color: "var(--text)",
       fontWeight: 950,
       cursor: "pointer",
     }) as React.CSSProperties,
@@ -404,15 +404,15 @@ const L = {
     gap: 12,
   } as React.CSSProperties,
   stat: {
-    border: "1px solid rgba(15,23,42,0.08)",
-    background: "#fff",
+    border: "1px solid color-mix(in srgb, var(--border) 78%, transparent)",
+    background: "var(--surface)",
     borderRadius: 16,
     padding: 14,
     display: "grid",
     gap: 6,
   } as React.CSSProperties,
-  statTitle: { fontSize: 12, fontWeight: 950, color: "#64748b" } as React.CSSProperties,
-  statValue: { fontSize: 16, fontWeight: 950, color: "#0f172a" } as React.CSSProperties,
+  statTitle: { fontSize: 12, fontWeight: 950, color: "var(--muted)" } as React.CSSProperties,
+  statValue: { fontSize: 16, fontWeight: 950, color: "var(--text)" } as React.CSSProperties,
   progressWrap: {
     height: 10,
     borderRadius: 999,
@@ -432,8 +432,8 @@ const L = {
     gap: 10,
   } as React.CSSProperties,
   quickItem: {
-    border: "1px solid rgba(15,23,42,0.08)",
-    background: "rgba(241,245,249,0.55)",
+    border: "1px solid color-mix(in srgb, var(--border) 72%, transparent)",
+    background: "var(--surface-2)",
     borderRadius: 14,
     padding: 12,
     display: "grid",
@@ -445,8 +445,8 @@ const L = {
     width: 40,
     height: 40,
     borderRadius: 12,
-    background: "#fff",
-    border: "1px solid rgba(15,23,42,0.08)",
+    background: "var(--surface)",
+    border: "1px solid color-mix(in srgb, var(--border) 72%, transparent)",
     display: "grid",
     placeItems: "center",
     fontSize: 18,
@@ -465,14 +465,14 @@ const L = {
     background: "rgba(22,163,74,0.9)",
     marginTop: 5,
   } as React.CSSProperties,
-  timeTitle: { fontWeight: 950, color: "#0f172a" } as React.CSSProperties,
-  timeSub: { fontWeight: 850, color: "#64748b", fontSize: 13 } as React.CSSProperties,
+  timeTitle: { fontWeight: 950, color: "var(--text)" } as React.CSSProperties,
+  timeSub: { fontWeight: 850, color: "var(--muted)", fontSize: 13 } as React.CSSProperties,
   warnBox: {
     border: "1px solid rgba(245,158,11,0.35)",
     background: "rgba(245,158,11,0.10)",
     borderRadius: 14,
     padding: 12,
-    color: "#0f172a",
+    color: "var(--text)",
     fontWeight: 850,
     display: "grid",
     gap: 6,

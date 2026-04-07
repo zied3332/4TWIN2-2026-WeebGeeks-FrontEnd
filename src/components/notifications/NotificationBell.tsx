@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { FiBell } from 'react-icons/fi';
 import { useNotifications } from '../../hooks/useNotifications';
 import NotificationDropdown from './NotificationDropdown';
 
@@ -26,8 +27,9 @@ export default function NotificationBell() {
         type="button"
         className="notification-bell-btn"
         onClick={() => setOpen((prev) => !prev)}
+        aria-label="Open notifications"
       >
-        <span className="notification-bell-icon">🔔</span>
+        <FiBell className="notification-bell-icon" size={19} />
 
         {unreadCount > 0 && (
           <span className="notification-badge">

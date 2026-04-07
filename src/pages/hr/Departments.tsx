@@ -10,8 +10,8 @@ import {
 import { getUsers, type User } from "../../services/users.service";
 
 const card: React.CSSProperties = {
-  background: "white",
-  border: "1px solid #eaecef",
+  background: "var(--card)",
+  border: "1px solid var(--border)",
   borderRadius: 18,
   padding: 16,
 };
@@ -30,9 +30,11 @@ const badge = (bg: string, color: string): React.CSSProperties => ({
 const btn: React.CSSProperties = {
   padding: "10px 12px",
   borderRadius: 12,
-  border: "1px solid #eaecef",
-  background: "white",
+  border: "1px solid var(--input-border)",
+  background: "var(--surface)",
+  color: "var(--text)",
   fontWeight: 900,
+  fontSize: 16,
   cursor: "pointer",
 };
 
@@ -45,11 +47,14 @@ const btnGreen: React.CSSProperties = {
 
 const input: React.CSSProperties = {
   width: "100%",
-  padding: "10px 12px",
+  padding: "12px 14px",
   borderRadius: 12,
-  border: "1px solid #eaecef",
+  border: "1px solid var(--input-border)",
+  background: "var(--surface)",
+  color: "var(--text)",
   outline: "none",
   fontWeight: 700,
+  fontSize: 16,
 };
 
 const table: React.CSSProperties = {
@@ -60,25 +65,27 @@ const table: React.CSSProperties = {
 
 const th: React.CSSProperties = {
   textAlign: "left",
-  padding: "12px 8px",
-  borderBottom: "2px solid #eaecef",
+  padding: "14px 8px",
+  borderBottom: "1px solid var(--border)",
   fontWeight: 900,
-  fontSize: 12,
-  color: "#64748b",
-  background: "#f8fafc",
+  fontSize: 16,
+  color: "var(--muted)",
+  background: "var(--surface-2)",
 };
 
 const td: React.CSSProperties = {
-  padding: "12px 8px",
-  borderBottom: "1px solid #eaecef",
+  padding: "14px 8px",
+  borderBottom: "1px solid var(--border)",
   fontWeight: 700,
-  color: "#0f172a",
+  fontSize: 16,
+  color: "var(--text)",
 };
 
 const tdGray: React.CSSProperties = {
   ...td,
-  color: "#64748b",
+  color: "var(--muted)",
   fontWeight: 600,
+  fontSize: 15,
 };
 
 const paginationRow: React.CSSProperties = {
@@ -91,8 +98,8 @@ const paginationRow: React.CSSProperties = {
 };
 
 const paginationInfo: React.CSSProperties = {
-  color: "#64748b",
-  fontSize: 13,
+  color: "var(--muted)",
+  fontSize: 15,
   fontWeight: 700,
 };
 
@@ -105,11 +112,46 @@ const paginationControls: React.CSSProperties = {
 const pageBadge: React.CSSProperties = {
   padding: "6px 10px",
   borderRadius: 10,
-  border: "1px solid #eaecef",
-  background: "white",
-  color: "#0f172a",
+  border: "1px solid var(--border)",
+  background: "var(--surface)",
+  color: "var(--text)",
   fontWeight: 800,
-  fontSize: 13,
+  fontSize: 15,
+};
+
+const actionsGroup: React.CSSProperties = {
+  display: "inline-flex",
+  flexWrap: "nowrap",
+  alignItems: "center",
+  gap: 0,
+  borderRadius: 12,
+  overflow: "hidden",
+  border: "1px solid var(--border)",
+  background: "var(--surface-2)",
+};
+
+const actionBtn: React.CSSProperties = {
+  width: 38,
+  height: 38,
+  border: "none",
+  borderRight: "1px solid var(--border)",
+  background: "transparent",
+  color: "var(--muted)",
+  cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const actionBtnPrimary: React.CSSProperties = {
+  ...actionBtn,
+  color: "#145a41",
+};
+
+const actionBtnDanger: React.CSSProperties = {
+  ...actionBtn,
+  color: "#dc2626",
+  borderRight: "none",
 };
 
 export default function HrDepartments() {
@@ -271,12 +313,10 @@ export default function HrDepartments() {
   return (
     <div className="page">
       <div className="container">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 12 }}>
+        <div className="page-header" style={{ alignItems: "start" }}>
           <div>
-            <h1 style={{ fontSize: 44, margin: 0 }}>Departments</h1>
-            <div style={{ marginTop: 6, color: "#64748b", fontWeight: 700 }}>
-              Manage organization departments and their details.
-            </div>
+            <h1 className="page-title">Departments Management</h1>
+            <p className="page-subtitle">Manage organization departments and their details.</p>
           </div>
 
           <button style={btnGreen} onClick={openCreateModal}>
@@ -293,17 +333,17 @@ export default function HrDepartments() {
           />
         </div>
 
-        <div style={{ marginTop: 12, padding: 12, background: "#f0fdf4", borderRadius: 12, border: "1px solid #86efac" }}>
-          <div style={{ fontWeight: 900, fontSize: 14, color: "#15803d" }}>Total departments: {filteredDepartments.length}</div>
+        <div style={{ marginTop: 12, padding: 12, background: "color-mix(in srgb, var(--primary) 12%, var(--surface))", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--primary) 35%, var(--border))" }}>
+          <div style={{ fontWeight: 900, fontSize: 16, color: "#15803d" }}>Total departments: {filteredDepartments.length}</div>
         </div>
 
         <div style={{ ...card, marginTop: 14 }}>
           {loading ? (
-            <div style={{ textAlign: "center", padding: 24, color: "#64748b" }}>Loading departments...</div>
+            <div style={{ textAlign: "center", padding: 24, color: "var(--muted)", fontSize: 18, fontWeight: 700 }}>Loading departments...</div>
           ) : error ? (
-            <div style={{ textAlign: "center", padding: 24, color: "#dc2626" }}>{error}</div>
+            <div style={{ textAlign: "center", padding: 24, color: "#dc2626", fontSize: 18, fontWeight: 700 }}>{error}</div>
           ) : filteredDepartments.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 24, color: "#64748b" }}>No departments found</div>
+            <div style={{ textAlign: "center", padding: 24, color: "var(--muted)", fontSize: 18, fontWeight: 700 }}>No departments found</div>
           ) : (
             <>
               <table style={table}>
@@ -317,8 +357,8 @@ export default function HrDepartments() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedDepartments.map((dept) => (
-                    <tr key={dept._id}>
+                  {paginatedDepartments.map((dept, i) => (
+                    <tr key={dept._id} style={{ background: i % 2 === 1 ? "var(--surface-2)" : "var(--surface)" }}>
                       <td style={td}>
                         <span style={{ fontWeight: 900, color: "#1f7a5a" }}>{dept.name}</span>
                       </td>
@@ -328,30 +368,27 @@ export default function HrDepartments() {
                       <td style={tdGray}>{dept.manager_id ? managerNameById.get(dept.manager_id) || "—" : "—"}</td>
                       <td style={tdGray}>{dept.description || "—"}</td>
                       <td style={td}>
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(dept)}
-                          style={{ ...btn, padding: "8px 10px", marginRight: 8 }}
-                          title="Edit department"
-                        >
-                          <FiEdit2 size={15} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDelete(dept)}
-                          disabled={deletingId === dept._id}
-                          style={{
-                            ...btn,
-                            padding: "8px 10px",
-                            color: "#dc2626",
-                            borderColor: "#fecaca",
-                            opacity: deletingId === dept._id ? 0.7 : 1,
-                            cursor: deletingId === dept._id ? "not-allowed" : "pointer",
-                          }}
-                          title="Delete department"
-                        >
-                          <FiTrash2 size={15} />
-                        </button>
+                        <div style={actionsGroup}>
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(dept)}
+                            style={actionBtnPrimary}
+                            title="Edit department"
+                            aria-label="Edit department"
+                          >
+                            <FiEdit2 size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDelete(dept)}
+                            disabled={deletingId === dept._id}
+                            style={{ ...actionBtnDanger, opacity: deletingId === dept._id ? 0.7 : 1, cursor: deletingId === dept._id ? "not-allowed" : "pointer" }}
+                            title="Delete department"
+                            aria-label="Delete department"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -403,25 +440,26 @@ export default function HrDepartments() {
         >
           <div
             style={{
-              background: "white",
+              background: "var(--surface)",
               borderRadius: 18,
               padding: 24,
               maxWidth: 520,
               width: "92%",
               boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)",
+              border: "1px solid var(--border)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 8px", color: "#0f172a" }}>
+            <h2 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 8px", color: "var(--text)" }}>
               {editingDepartmentId ? "Edit Department" : "Add New Department"}
             </h2>
-            <div style={{ fontSize: 13, color: "#64748b", fontWeight: 700, marginBottom: 18 }}>
+            <div style={{ fontSize: 15, color: "var(--muted)", fontWeight: 700, marginBottom: 18 }}>
               Choose a manager from existing manager accounts.
             </div>
 
             <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 900, color: "#475569", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 900, color: "var(--muted)", marginBottom: 6 }}>
                   Department Name *
                 </label>
                 <input
@@ -433,7 +471,7 @@ export default function HrDepartments() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 900, color: "#475569", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 900, color: "var(--muted)", marginBottom: 6 }}>
                   Department Code *
                 </label>
                 <input
@@ -445,7 +483,7 @@ export default function HrDepartments() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 900, color: "#475569", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 900, color: "var(--muted)", marginBottom: 6 }}>
                   Manager
                 </label>
                 <select
@@ -463,7 +501,7 @@ export default function HrDepartments() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 900, color: "#475569", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 900, color: "var(--muted)", marginBottom: 6 }}>
                   Description
                 </label>
                 <textarea

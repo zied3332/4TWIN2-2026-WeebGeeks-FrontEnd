@@ -1,5 +1,5 @@
 // src/router/router.tsx
-import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
+import { createBrowserRouter, Navigate, Outlet, useParams } from "react-router-dom";
 
 import LandingPage from "../pages/LandingPage";
 import AuthLayout from "../pages/auth/AuthLayout";
@@ -26,10 +26,9 @@ import AssignSkillPage from "../pages/hr/skills/AssignSkillPage";
 // Manager pages
 import ManagerTeam from "../pages/manger/ManagerTeam";
 import ManagerActivities from "../pages/manger/ManagerActivities.tsx";
+import ManagerDashboard from "../pages/manger/ManagerDashboard";
 
 // Employee pages
-import Recommendations from "../pages/employee/Recommendations";
-import History from "../pages/employee/History";
 import CvUpload from "../pages/employee/CvUpload";
 import MySkillsPage from "../pages/employee/skills/MySkillsPage";
 
@@ -84,11 +83,13 @@ function Forbidden() {
 }
 
 function NotificationsRedirect() {
+  const { side } = useParams<{ side?: string }>();
+  const safeSide = side === 'unread' || side === 'read' ? `/${side}` : '';
   const role = getRole();
-  if (role === "HR") return <Navigate to="/hr/notifications" replace />;
-  if (role === "SUPER_MANAGER") return <Navigate to="/super-manager/notifications" replace />;
-  if (role === "MANAGER") return <Navigate to="/manager/notifications" replace />;
-  if (role === "EMPLOYEE") return <Navigate to="/me/notifications" replace />;
+  if (role === "HR") return <Navigate to={`/hr/notifications${safeSide}`} replace />;
+  if (role === "SUPER_MANAGER") return <Navigate to={`/super-manager/notifications${safeSide}`} replace />;
+  if (role === "MANAGER") return <Navigate to={`/manager/notifications${safeSide}`} replace />;
+  if (role === "EMPLOYEE") return <Navigate to={`/me/notifications${safeSide}`} replace />;
   return <Navigate to="/auth/login" replace />;
 }
 
@@ -136,6 +137,7 @@ path: "/auth/account-pending", element: <AccountPending />
 
           { path: "profile", element: <Profile /> },
           { path: "notifications", element: <NotificationsPage /> },
+          { path: "notifications/:side", element: <NotificationsPage /> },
           { path: "employees/:id", element: <Profile /> },
 
         ],
@@ -166,6 +168,7 @@ path: "/auth/account-pending", element: <AccountPending />
           { path: "skills/assign", element: <AssignSkillPage /> },
           { path: "profile", element: <Profile /> },
           { path: "notifications", element: <NotificationsPage /> },
+          { path: "notifications/:side", element: <NotificationsPage /> },
           { path: "employees/:id", element: <Profile /> },
 
         ],
@@ -181,11 +184,10 @@ path: "/auth/account-pending", element: <AccountPending />
         path: "/manager",
         element: <ManagerLayout />,
         children: [
-          { index: true, element: <Blank /> },
+          { index: true, element: <ManagerDashboard /> },
           { path: "blank", element: <Blank /> },
 
-          { path: "dashboard", element: <Blank /> },
-          { path: "analytics", element: <Blank /> },
+          { path: "dashboard", element: <ManagerDashboard /> },
 
           { path: "team", element: <ManagerTeam /> },
           { path: "skills", element: <SkillsManagementPage /> },
@@ -193,6 +195,7 @@ path: "/auth/account-pending", element: <AccountPending />
           { path: "profile", element: <Profile /> },
             { path: "activities", element: <ManagerActivities /> },
           { path: "notifications", element: <NotificationsPage /> },
+          { path: "notifications/:side", element: <NotificationsPage /> },
           { path: "employees/:id", element: <Profile /> },
         ],
       },
@@ -211,17 +214,20 @@ path: "/auth/account-pending", element: <AccountPending />
           { path: "blank", element: <Blank /> },
 
           { path: "profile", element: <Profile /> },
-          { path: "recommendations", element: <Recommendations /> },
-          { path: "history", element: <History /> },
           { path: "cv", element: <CvUpload /> },
           { path: "skills", element: <MySkillsPage /> },
           { path: "notifications", element: <NotificationsPage /> },
+          { path: "notifications/:side", element: <NotificationsPage /> },
         ],
       },
     ],
   },
   {
     path: '/notifications',
+    element: <NotificationsRedirect />,
+  },
+  {
+    path: '/notifications/:side',
     element: <NotificationsRedirect />,
   },
   { path: "/complete-profile", element: <CompleteProfile /> },

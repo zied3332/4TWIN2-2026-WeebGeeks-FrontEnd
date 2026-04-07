@@ -309,16 +309,20 @@ export default function ManagerTeam() {
 
   return (
     <div className="container">
+      <div className="page-header" style={{ marginBottom: 12 }}>
+        <div>
+          <h1 className="page-title">My Team</h1>
+          <p className="page-subtitle">
+            {departmentName
+              ? `Employees assigned to your department: ${departmentName}.`
+              : "Employees assigned to your department."}
+          </p>
+        </div>
+      </div>
+
       <div className="card section-card">
         <div className="section-head">
-          <div>
-            <div className="section-title">My Team</div>
-            <div className="muted">
-              {departmentName
-                ? `Employees assigned to your department: ${departmentName}.`
-                : "Employees assigned to your department."}
-            </div>
-          </div>
+          <div className="section-title">Team List</div>
 
           <div style={{ display: "flex", gap: 10 }}>
             <input

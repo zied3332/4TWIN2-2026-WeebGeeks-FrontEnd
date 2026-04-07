@@ -6,6 +6,7 @@ export type NotificationType =
   | 'SKILL_APPROVED'
   | 'SKILL_REJECTED'
   | 'ACTIVITY_ASSIGNED'
+  | 'ACCOUNT_APPROVAL_REQUEST'
   | 'GENERAL';
 
 export type NotificationChange = {

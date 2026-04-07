@@ -360,6 +360,51 @@
   .auth-grid2 { grid-template-columns: 1fr; }
 }
 
+:root[data-theme="dark"] .auth-split {
+  background: #0f1726;
+}
+
+:root[data-theme="dark"] .auth-right {
+  background: radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.08), transparent 40%), #0f1726;
+}
+
+:root[data-theme="dark"] .auth-card {
+  background: #131d31;
+  border-color: #253652;
+  box-shadow: 0 16px 52px rgba(2, 6, 23, 0.44);
+}
+
+:root[data-theme="dark"] .auth-card-brand,
+:root[data-theme="dark"] .auth-title,
+:root[data-theme="dark"] .auth-label {
+  color: #e6edf8;
+}
+
+:root[data-theme="dark"] .auth-sub,
+:root[data-theme="dark"] .auth-muted,
+:root[data-theme="dark"] .auth-help {
+  color: #9fb0cc;
+}
+
+:root[data-theme="dark"] .auth-logo-chip {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+:root[data-theme="dark"] .auth-input {
+  background: #18243b;
+  border-color: #2b3e5e;
+  color: #e6edf8;
+}
+
+:root[data-theme="dark"] .auth-input::placeholder {
+  color: #8ea2c2;
+}
+
+:root[data-theme="dark"] .auth-link {
+  color: #6ee7b7;
+}
+
 /* ===== Modern Login/Signup Design ===== */
 
 .auth-hero-shell {
@@ -964,4 +1009,82 @@
   justify-content: center;
   align-items: center;
   text-decoration: none;
+}
+
+/* ===== Dark mode overrides for modern auth screens ===== */
+:root[data-theme="dark"] .auth-hero-shell {
+  --text: #e6edf8;
+  --muted: #9fb0cc;
+  --border: #2b3e5e;
+}
+
+:root[data-theme="dark"] .auth-top-nav {
+  background: rgba(16, 27, 47, 0.86);
+  border: 1px solid #213452;
+  box-shadow: 0 12px 36px rgba(2, 6, 23, 0.45);
+}
+
+:root[data-theme="dark"] .auth-logo-text,
+:root[data-theme="dark"] .auth-nav-links a,
+:root[data-theme="dark"] .brand-title,
+:root[data-theme="dark"] .modern-auth-card h2,
+:root[data-theme="dark"] .modern-auth-form .field label,
+:root[data-theme="dark"] .switch-text,
+:root[data-theme="dark"] .brand-text h1,
+:root[data-theme="dark"] .pending-message-box strong {
+  color: #e6edf8;
+}
+
+:root[data-theme="dark"] .auth-nav-links a:hover,
+:root[data-theme="dark"] .modern-auth-card .form-options a,
+:root[data-theme="dark"] .modern-auth-card .switch-text a,
+:root[data-theme="dark"] .text-btn {
+  color: #6ee7b7;
+}
+
+:root[data-theme="dark"] .modern-auth-card {
+  background: rgba(19, 29, 49, 0.96);
+  border: 1px solid #253652;
+  box-shadow: 0 28px 70px rgba(2, 6, 23, 0.5);
+}
+
+:root[data-theme="dark"] .modern-auth-card .auth-subtitle,
+:root[data-theme="dark"] .help-text,
+:root[data-theme="dark"] .brand-text p,
+:root[data-theme="dark"] .pending-message-box p {
+  color: #9fb0cc;
+}
+
+:root[data-theme="dark"] .modern-auth-form input,
+:root[data-theme="dark"] .modern-auth-form select,
+:root[data-theme="dark"] .google-btn {
+  background: #18243b;
+  border-color: #2b3e5e;
+  color: #e6edf8;
+}
+
+:root[data-theme="dark"] .modern-auth-form input::placeholder {
+  color: #8ea2c2;
+}
+
+:root[data-theme="dark"] .modern-auth-form input:focus,
+:root[data-theme="dark"] .modern-auth-form select:focus,
+:root[data-theme="dark"] .google-btn:hover {
+  background: #1c2a46;
+  border-color: #3b82f6;
+}
+
+:root[data-theme="dark"] .auth-divider {
+  color: #8ea2c2;
+}
+
+:root[data-theme="dark"] .auth-divider::before,
+:root[data-theme="dark"] .auth-divider::after {
+  background: #2b3e5e;
+}
+
+:root[data-theme="dark"] .pending-message-box {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #d1fae5;
 }

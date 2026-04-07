@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import {
   createSkill,
   deleteSkill,
@@ -14,14 +15,6 @@ type Skill = {
   category: SkillCategory;
   description?: string;
 };
-
-function EditIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className="skill-edit-icon-svg">
-      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm2.92 2.33h-.67v-.67l8.56-8.56.67.67-8.56 8.56Zm14.71-11.54a1.003 1.003 0 0 0 0-1.42l-2.25-2.25a1.003 1.003 0 0 0-1.42 0l-1.77 1.77 3.75 3.75 1.69-1.85Z" />
-    </svg>
-  );
-}
 
 const ITEMS_PER_PAGE = 8;
 
@@ -181,10 +174,10 @@ export default function SkillsManagementPage() {
   };
 
   return (
-    <div className="page-content">
+    <div className="page-content skills-management-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Skills</h1>
+          <h1 className="page-title">Skills Management</h1>
           <p className="page-subtitle">
             Manage employee skills and their categories.
           </p>
@@ -296,32 +289,36 @@ export default function SkillsManagementPage() {
                   </td>
                 </tr>
               ) : (
-                paginatedSkills.map((skill) => (
-                  <tr key={skill._id}>
+                paginatedSkills.map((skill, index) => (
+                  <tr key={skill._id} className={index % 2 === 1 ? 'skills-row-alt' : ''}>
                     <td className="cell-title">{skill.name}</td>
                     <td>
-                      <span className={`badge badge-${skill.category.toLowerCase()}`}>
+                      <span className="skills-category-pill">
                         {getCategoryLabel(skill.category)}
                       </span>
                     </td>
                     <td>{skill.description || '—'}</td>
                     <td className="text-center">
-                      <button
-                        type="button"
-                        className="table-action-btn skill-edit-icon-btn"
-                        onClick={() => handleStartEdit(skill)}
-                        title="Edit skill"
-                        aria-label={`Edit ${skill.name}`}
-                      >
-                        <EditIcon />
-                      </button>
-                      <button
-                        type="button"
-                        className="table-action-btn"
-                        onClick={() => handleDelete(skill._id)}
-                      >
-                        Delete
-                      </button>
+                      <div className="skills-actions-group">
+                        <button
+                          type="button"
+                          className="skills-action-icon-btn skills-action-edit"
+                          onClick={() => handleStartEdit(skill)}
+                          title="Edit skill"
+                          aria-label={`Edit ${skill.name}`}
+                        >
+                          <FiEdit2 size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          className="skills-action-icon-btn skills-action-delete"
+                          onClick={() => handleDelete(skill._id)}
+                          title="Delete skill"
+                          aria-label={`Delete ${skill.name}`}
+                        >
+                          <FiTrash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

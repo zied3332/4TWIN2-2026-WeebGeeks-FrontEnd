@@ -240,14 +240,6 @@ export default function MySkillsPage() {
             View your assigned skills, levels, and performance evolution.
           </p>
         </div>
-
-        <button
-          type="button"
-          className="primary-btn"
-          onClick={() => setShowAddModal(true)}
-        >
-          + Add Skill
-        </button>
       </div>
 
       <div className="content-card skills-card">

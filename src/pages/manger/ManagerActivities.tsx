@@ -9,43 +9,46 @@ import { getUsers, type User } from "../../services/users.service";
 import { getAllDepartments, type Department } from "../../services/departments.service";
 
 const card: React.CSSProperties = {
-  background: "white",
-  border: "1px solid #eaecef",
-  borderRadius: 12,
-  padding: 16,
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
+  borderRadius: 16,
+  padding: 20,
+  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.08)",
 };
 
 const btn: React.CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: 8,
-  border: "1px solid #eaecef",
-  background: "white",
-  fontWeight: 700,
+  padding: "11px 14px",
+  borderRadius: 10,
+  border: "1px solid var(--input-border)",
+  background: "var(--surface-2)",
+  color: "var(--text)",
+  fontSize: 15,
+  fontWeight: 800,
   cursor: "pointer",
 };
 
 const badge = (bg: string, color: string): React.CSSProperties => ({
   display: "inline-flex",
   alignItems: "center",
-  padding: "6px 10px",
+  padding: "7px 12px",
   borderRadius: 999,
   background: bg,
   color,
   fontWeight: 900,
-  fontSize: 12,
+  fontSize: 13,
 });
 
 const statusColors: Record<string, [string, string]> = {
-  PLANNED: ["#eef2ff", "#3730a3"],
-  IN_PROGRESS: ["#dcfce7", "#15803d"],
-  COMPLETED: ["#f0fdf4", "#166534"],
-  CANCELLED: ["#fee2e2", "#991b1b"],
+  PLANNED: ["color-mix(in srgb, var(--surface-2) 78%, #c7d2fe)", "color-mix(in srgb, var(--text) 86%, #3730a3)"],
+  IN_PROGRESS: ["color-mix(in srgb, var(--surface-2) 78%, #86efac)", "color-mix(in srgb, var(--text) 84%, #15803d)"],
+  COMPLETED: ["color-mix(in srgb, var(--surface-2) 78%, #bbf7d0)", "color-mix(in srgb, var(--text) 84%, #166534)"],
+  CANCELLED: ["color-mix(in srgb, var(--surface-2) 78%, #fecaca)", "color-mix(in srgb, var(--text) 84%, #991b1b)"],
 };
 
 const contextColors: Record<string, [string, string]> = {
-  UPSKILLING: ["#e0f2fe", "#0369a1"],
-  EXPERTISE: ["#fef3c7", "#f59e0b"],
-  DEVELOPMENT: ["#f3e8ff", "#7c3aed"],
+  UPSKILLING: ["color-mix(in srgb, var(--surface-2) 78%, #bae6fd)", "color-mix(in srgb, var(--text) 84%, #0369a1)"],
+  EXPERTISE: ["color-mix(in srgb, var(--surface-2) 78%, #fde68a)", "color-mix(in srgb, var(--text) 84%, #b45309)"],
+  DEVELOPMENT: ["color-mix(in srgb, var(--surface-2) 78%, #ddd6fe)", "color-mix(in srgb, var(--text) 84%, #6d28d9)"],
 };
 
 function formatLevel(v: string) {
@@ -150,15 +153,15 @@ export default function ManagerActivities() {
   return (
     <div className="page">
       <div className="container">
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ marginBottom: 0 }}>Department Activities</h1>
-          <p style={{ color: "#6b7280", marginTop: 4 }}>
-            Activities for your department team members
-          </p>
+        <div className="page-header" style={{ marginBottom: 24 }}>
+          <div>
+            <h1 className="page-title">Department Activities</h1>
+            <p className="page-subtitle">Activities for your department team members</p>
+          </div>
         </div>
 
         {filteredActivities.length === 0 ? (
-          <div style={{ ...card, textAlign: "center", color: "#a3a3a3", padding: 40 }}>
+          <div style={{ ...card, textAlign: "center", color: "var(--muted)", padding: 40 }}>
             <p>No activities for your department yet.</p>
           </div>
         ) : (
@@ -175,8 +178,8 @@ export default function ManagerActivities() {
                 }}
               >
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                    <div style={{ fontWeight: 900, fontSize: 16, color: "#0f172a" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                    <div style={{ fontWeight: 900, fontSize: 20, color: "var(--text)", lineHeight: 1.25 }}>
                       {activity.title}
                     </div>
                     <span style={badge(...contextColors[activity.priorityContext])}>
@@ -184,30 +187,30 @@ export default function ManagerActivities() {
                     </span>
                   </div>
 
-                  <div style={{ color: "#64748b", fontSize: 13, marginBottom: 12, lineHeight: 1.6 }}>
+                  <div style={{ color: "var(--muted)", fontSize: 15, marginBottom: 14, lineHeight: 1.65 }}>
                     <div>{activity.description.substring(0, 100)}...</div>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#a3a3a3", marginBottom: 2 }}>TYPE</div>
-                      <div style={{ color: "#475569" }}>{activity.type}</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "var(--muted)", marginBottom: 4 }}>TYPE</div>
+                      <div style={{ color: "var(--text)", fontSize: 15, fontWeight: 700 }}>{activity.type}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#a3a3a3", marginBottom: 2 }}>DURATION</div>
-                      <div style={{ color: "#475569", fontSize: 12 }}>{activity.duration}</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "var(--muted)", marginBottom: 4 }}>DURATION</div>
+                      <div style={{ color: "var(--text)", fontSize: 15, fontWeight: 700 }}>{activity.duration}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#a3a3a3", marginBottom: 2 }}>START DATE</div>
-                      <div style={{ color: "#475569", fontSize: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "var(--muted)", marginBottom: 4 }}>START DATE</div>
+                      <div style={{ color: "var(--text)", fontSize: 15, fontWeight: 700 }}>
                         {new Date(activity.startDate).toLocaleDateString()}
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#a3a3a3", marginBottom: 2 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "var(--muted)", marginBottom: 4 }}>
                         SEATS LEFT
                       </div>
-                      <div style={{ color: "#475569" }}>{activity.availableSlots}</div>
+                      <div style={{ color: "var(--text)", fontSize: 15, fontWeight: 700 }}>{activity.availableSlots}</div>
                     </div>
                   </div>
                 </div>
@@ -241,10 +244,10 @@ export default function ManagerActivities() {
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 12, marginBottom: 16 }}>
               <div>
-                <div style={{ fontWeight: 900, fontSize: 18, color: "#0f172a" }}>
+                <div style={{ fontWeight: 900, fontSize: 18, color: "var(--text)" }}>
                   {selectedActivity.title}
                 </div>
-                <div style={{ marginTop: 4, color: "#64748b", fontWeight: 700 }}>
+                <div style={{ marginTop: 4, color: "var(--muted)", fontWeight: 700 }}>
                   {selectedActivity.type}
                 </div>
               </div>
@@ -259,33 +262,33 @@ export default function ManagerActivities() {
 
             <div style={{ display: "grid", gap: 12 }}>
               <div>
-                <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Description</div>
-                <div style={{ color: "#475569", fontSize: 14, lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Description</div>
+                <div style={{ color: "var(--text)", fontSize: 14, lineHeight: 1.5 }}>
                   {selectedActivity.description}
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Location</div>
-                  <div style={{ color: "#475569" }}>{selectedActivity.location}</div>
+                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Location</div>
+                  <div style={{ color: "var(--text)" }}>{selectedActivity.location}</div>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Duration</div>
-                  <div style={{ color: "#475569" }}>{selectedActivity.duration}</div>
+                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Duration</div>
+                  <div style={{ color: "var(--text)" }}>{selectedActivity.duration}</div>
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Start Date</div>
-                  <div style={{ color: "#475569" }}>
+                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Start Date</div>
+                  <div style={{ color: "var(--text)" }}>
                     {new Date(selectedActivity.startDate).toLocaleDateString()}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>End Date</div>
-                  <div style={{ color: "#475569" }}>
+                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>End Date</div>
+                  <div style={{ color: "var(--text)" }}>
                     {new Date(selectedActivity.endDate).toLocaleDateString()}
                   </div>
                 </div>
@@ -293,13 +296,13 @@ export default function ManagerActivities() {
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Status</div>
+                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Status</div>
                   <span style={badge(...statusColors[selectedActivity.status])}>
                     {formatStatus(selectedActivity.status)}
                   </span>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Context</div>
+                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Context</div>
                   <span style={badge(...contextColors[selectedActivity.priorityContext])}>
                     {selectedActivity.priorityContext}
                   </span>
@@ -308,33 +311,33 @@ export default function ManagerActivities() {
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Priority Level</div>
-                  <div style={{ color: "#475569" }}>{formatLevel(selectedActivity.targetLevel)}</div>
+                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Priority Level</div>
+                  <div style={{ color: "var(--text)" }}>{formatLevel(selectedActivity.targetLevel)}</div>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Seats Available</div>
-                  <div style={{ color: "#475569" }}>{selectedActivity.availableSlots}</div>
+                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Seats Available</div>
+                  <div style={{ color: "var(--text)" }}>{selectedActivity.availableSlots}</div>
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Department</div>
-                  <div style={{ color: "#475569" }}>
+                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Department</div>
+                  <div style={{ color: "var(--text)" }}>
                     {departmentNameById.get(selectedActivity.departmentId || "") || "-"}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Responsible Manager</div>
-                  <div style={{ color: "#475569" }}>
+                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Responsible Manager</div>
+                  <div style={{ color: "var(--text)" }}>
                     {managerNameById.get(selectedActivity.responsibleManagerId || "") || "Unassigned"}
                   </div>
                 </div>
               </div>
 
               <div>
-                <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Created At</div>
-                <div style={{ color: "#475569" }}>
+                <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Created At</div>
+                <div style={{ color: "var(--text)" }}>
                   {selectedActivity.createdAt
                     ? new Date(selectedActivity.createdAt).toLocaleString()
                     : "-"}
@@ -343,20 +346,20 @@ export default function ManagerActivities() {
 
               {activitySkills.length > 0 && (
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 8 }}>Required Skills</div>
+                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 8 }}>Required Skills</div>
                   <div style={{ display: "grid", gap: 8 }}>
                     {activitySkills.map((as: any, idx: number) => (
                       <div
                         key={idx}
                         style={{
-                          borderLeft: "3px solid #e0f2fe",
+                          borderLeft: "3px solid color-mix(in srgb, var(--primary) 55%, var(--border))",
                           paddingLeft: 12,
-                          color: "#475569",
+                          color: "var(--text)",
                           fontSize: 13,
                         }}
                       >
                         <div style={{ fontWeight: 700 }}>{as.skill_id.name}</div>
-                        <div style={{ fontSize: 11, color: "#a3a3a3", marginTop: 2 }}>
+                        <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
                           Level: <span style={{ fontWeight: 700 }}>{as.required_level}</span> | Importance:{" "}
                           <span style={{ fontWeight: 700 }}>{(as.weight * 100).toFixed(0)}%</span>
                         </div>

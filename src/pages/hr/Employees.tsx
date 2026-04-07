@@ -9,8 +9,8 @@ import { getAllDepartments, type Department } from "../../services/departments.s
 import { useNavigate } from "react-router-dom";
 
 const card: React.CSSProperties = {
-  background: "white",
-  border: "1px solid #eaecef",
+  background: "var(--card)",
+  border: "1px solid var(--border)",
   borderRadius: 18,
   padding: 16,
 };
@@ -29,8 +29,9 @@ const badge = (bg: string, color: string): React.CSSProperties => ({
 const btn: React.CSSProperties = {
   padding: "10px 12px",
   borderRadius: 12,
-  border: "1px solid #eaecef",
-  background: "white",
+  border: "1px solid var(--input-border)",
+  background: "var(--surface)",
+  color: "var(--text)",
   fontWeight: 900,
   cursor: "pointer",
 };
@@ -46,7 +47,9 @@ const input: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
   borderRadius: 12,
-  border: "1px solid #eaecef",
+  border: "1px solid var(--input-border)",
+  background: "var(--surface)",
+  color: "var(--text)",
   outline: "none",
   fontWeight: 700,
 };
@@ -54,40 +57,50 @@ const input: React.CSSProperties = {
 const select: React.CSSProperties = {
   padding: "10px 12px",
   borderRadius: 12,
-  border: "1px solid #eaecef",
-  background: "white",
+  border: "1px solid var(--input-border)",
+  background: "var(--surface)",
+  color: "var(--text)",
   fontWeight: 800,
   outline: "none",
 };
 
 const actionBtn: React.CSSProperties = {
-  width: 34,
-  height: 34,
-  display: "grid",
-  placeItems: "center",
-  borderRadius: 10,
-  border: "1px solid rgba(15,23,42,0.08)",
-  background: "#fff",
-  color: "#334155",
+  width: 38,
+  height: 38,
+  border: "none",
+  borderRight: "1px solid var(--border)",
+  background: "transparent",
+  color: "var(--muted)",
   cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const actionBtnPrimary: React.CSSProperties = {
   ...actionBtn,
-  border: "1px solid rgba(31,122,90,0.22)",
-  background: "rgba(31,122,90,0.08)",
   color: "#145a41",
 };
 
 const actionBtnDanger: React.CSSProperties = {
   ...actionBtn,
-  border: "1px solid rgba(239,68,68,0.25)",
-  background: "rgba(239,68,68,0.08)",
+  borderRight: "none",
   color: "#b91c1c",
 };
 
+const actionsGroup: React.CSSProperties = {
+  display: "inline-flex",
+  flexWrap: "nowrap",
+  alignItems: "center",
+  gap: 0,
+  borderRadius: 12,
+  overflow: "hidden",
+  border: "1px solid var(--border)",
+  background: "var(--surface-2)",
+};
+
 const fieldLabel: React.CSSProperties = {
-  color: "#64748b",
+  color: "var(--muted)",
   fontWeight: 700,
   fontSize: 12,
   textTransform: "uppercase",
@@ -97,25 +110,25 @@ const fieldLabel: React.CSSProperties = {
 const fieldValue: React.CSSProperties = {
   marginTop: 4,
   fontWeight: 800,
-  color: "#0f172a",
+  color: "var(--text)",
 };
 
 const IconEye = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
     <circle cx="12" cy="12" r="3" />
   </svg>
 );
 
 const IconPencil = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
   </svg>
 );
 
 const IconTrash = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="3 6 5 6 21 6" />
     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
     <line x1="10" y1="11" x2="10" y2="17" />
@@ -348,23 +361,28 @@ export default function HrEmployees() {
     <div className="page">
           <div className="container">
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 12 }}>
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: 44, margin: 0 }}>Employees</h1>
-          <div style={{ marginTop: 6, color: "#64748b", fontWeight: 700 }}>
-            Browse employees, filter by department/skills, and take actions.
-          </div>
+          <h1 className="page-title">Employees Management</h1>
+          <p className="page-subtitle">Browse employees, filter by department/skills, and take actions.</p>
         </div>
-
-        <button style={btnGreen} onClick={() => window.location.assign('/hr/users')}>Manage Users</button>
       </div>
 
       {/* Filters */}
-      <div style={{ ...card, marginTop: 14 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr", gap: 10 }}>
-          <input style={input} placeholder="Search name / role / email / matricule..." value={q} onChange={(e) => setQ(e.target.value)} />
+      <div style={{ ...card, marginTop: 14, padding: 22, borderRadius: 22 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1.1fr", gap: 14, alignItems: "center" }}>
+          <input
+            style={{ ...input, padding: "14px 16px", borderRadius: 14, fontSize: 16 }}
+            placeholder="Search name / role / email / matricule..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
 
-          <select style={select} value={filterDepartment} onChange={(e) => setFilterDepartment(e.target.value)}>
+          <select
+            style={{ ...select, padding: "14px 16px", borderRadius: 14, fontSize: 16 }}
+            value={filterDepartment}
+            onChange={(e) => setFilterDepartment(e.target.value)}
+          >
             <option value="">Department: All</option>
             {departmentOptions.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
@@ -375,8 +393,6 @@ export default function HrEmployees() {
 
       {/* Table */}
       <div style={{ ...card, marginTop: 14, padding: 0, overflow: "hidden" }}>
-        <div style={{ padding: 16, fontWeight: 900 }}>All Employees</div>
-
         {error && (
           <div style={{ margin: "0 16px 12px", padding: 12, borderRadius: 10, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.06)", color: "#b91c1c", fontWeight: 800 }}>
             {error}
@@ -386,42 +402,49 @@ export default function HrEmployees() {
         <div style={{ width: "100%", overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "#f8fafc", textAlign: "left" }}>
-                <th style={{ padding: 14, color: "#64748b" }}>Employee</th>
-                <th style={{ padding: 14, color: "#64748b" }}>Job Title</th>
-                <th style={{ padding: 14, color: "#64748b" }}>Department</th>
-                <th style={{ padding: 14, color: "#64748b" }}>Seniority</th>
-                <th style={{ padding: 14, color: "#64748b", width: 160 }}>Actions</th>
+              <tr style={{ background: "var(--surface-2)", textAlign: "left" }}>
+                <th style={{ padding: 14, color: "var(--muted)" }}>Employee</th>
+                <th style={{ padding: 14, color: "var(--muted)" }}>Job Title</th>
+                <th style={{ padding: 14, color: "var(--muted)" }}>Department</th>
+                <th style={{ padding: 14, color: "var(--muted)" }}>Seniority</th>
+                <th style={{ padding: 14, color: "var(--muted)", width: 160 }}>Actions</th>
               </tr>
             </thead>
 
             <tbody>
               {!loading && employees.length === 0 && (
-                <tr style={{ borderTop: "1px solid #eef2f7" }}>
-                  <td colSpan={5} style={{ padding: 14, color: "#64748b", fontWeight: 700 }}>No employees found.</td>
+                <tr style={{ borderTop: "1px solid var(--border)" }}>
+                  <td colSpan={5} style={{ padding: 14, color: "var(--muted)", fontWeight: 700 }}>No employees found.</td>
                 </tr>
               )}
 
               {loading && (
-                <tr style={{ borderTop: "1px solid #eef2f7" }}>
-                  <td colSpan={5} style={{ padding: 14, color: "#64748b", fontWeight: 700 }}>Loading employees...</td>
+                <tr style={{ borderTop: "1px solid var(--border)" }}>
+                  <td colSpan={5} style={{ padding: 14, color: "var(--muted)", fontWeight: 700 }}>Loading employees...</td>
                 </tr>
               )}
 
-              {paginatedEmployees.map((e) => (
-                <tr key={e.id} style={{ borderTop: "1px solid #eef2f7" }}>
+              {paginatedEmployees.map((e, i) => (
+                <tr
+                  key={e.id}
+                  style={{
+                    borderTop: "1px solid var(--border)",
+                    background: i % 2 === 1 ? "var(--surface-2)" : "var(--surface)",
+                  }}
+                >
                   <td
-  style={{ padding: 14, fontWeight: 900, cursor: "pointer", color: "#1f7a5a", textDecoration: "underline" }}
-onClick={() => navigate(`${getBasePath()}/employees/${e.id}`)}
-  title={`Voir le profil de ${e.name}`}
->
-  {e.name}
-</td>
-                  <td style={{ padding: 14, fontWeight: 700, color: "#0f172a" }}>{e.role}</td>
-                  <td style={{ padding: 14, fontWeight: 700, color: "#0f172a" }}>{e.department}</td>
+                    style={{ padding: 14, cursor: "pointer" }}
+                    onClick={() => navigate(`${getBasePath()}/employees/${e.id}`)}
+                    title={`Voir le profil de ${e.name}`}
+                  >
+                    <div style={{ fontWeight: 900, color: "#1f7a5a", textDecoration: "underline" }}>{e.name}</div>
+                    <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: "var(--muted)" }}>{e.email}</div>
+                  </td>
+                  <td style={{ padding: 14, fontWeight: 700, color: "var(--text)" }}>{e.role}</td>
+                  <td style={{ padding: 14, fontWeight: 700, color: "var(--text)" }}>{e.department}</td>
                   <td style={{ padding: 14 }}><span style={badge("#e0f2fe", "#0369a1")}>{e.seniority}</span></td>
                   <td style={{ padding: 14 }}>
-                    <div style={{ display: "inline-flex", gap: 8 }}>
+                    <div style={actionsGroup}>
                       <button
                         type="button"
                         style={actionBtn}
@@ -444,6 +467,7 @@ onClick={() => navigate(`${getBasePath()}/employees/${e.id}`)}
                         title="Delete"
                         onClick={() => onDelete(e)}
                         disabled={deletingId === e.id}
+                        aria-label="Delete employee"
                       >
                         <IconTrash />
                       </button>
@@ -456,7 +480,7 @@ onClick={() => navigate(`${getBasePath()}/employees/${e.id}`)}
         </div>
 
         {!loading && employees.length > 0 && (
-          <div style={{ padding: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, color: "#64748b", fontWeight: 700, flexWrap: "wrap" }}>
+          <div style={{ padding: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, color: "var(--muted)", fontWeight: 700, flexWrap: "wrap" }}>
             <div>
               Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, employees.length)} of {employees.length} employees
             </div>
@@ -471,7 +495,7 @@ onClick={() => navigate(`${getBasePath()}/employees/${e.id}`)}
               >
                 &lt;
               </button>
-              <span style={{ padding: "6px 10px", border: "1px solid #eaecef", borderRadius: 10, color: "#0f172a", background: "#fff" }}>
+              <span style={{ padding: "6px 10px", border: "1px solid var(--border)", borderRadius: 10, color: "var(--text)", background: "var(--surface)" }}>
                 Page {page} / {totalPages}
               </span>
               <button
@@ -506,15 +530,15 @@ onClick={() => navigate(`${getBasePath()}/employees/${e.id}`)}
             onClick={(ev) => ev.stopPropagation()}
             style={{
               width: "min(620px, 96vw)",
-              background: "#fff",
+              background: "var(--surface)",
               borderRadius: 16,
-              border: "1px solid #e2e8f0",
+              border: "1px solid var(--border)",
               boxShadow: "0 26px 60px rgba(2,6,23,0.22)",
               padding: 16,
             }}
           >
-            <div style={{ fontWeight: 900, fontSize: 20, color: "#0f172a" }}>Employee Details</div>
-            <div style={{ marginTop: 4, color: "#64748b", fontWeight: 700 }}>{viewing.name}</div>
+            <div style={{ fontWeight: 900, fontSize: 20, color: "var(--text)" }}>Employee Details</div>
+            <div style={{ marginTop: 4, color: "var(--muted)", fontWeight: 700 }}>{viewing.name}</div>
 
             <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
               <div>
@@ -573,15 +597,15 @@ onClick={() => navigate(`${getBasePath()}/employees/${e.id}`)}
             onClick={(ev) => ev.stopPropagation()}
             style={{
               width: "min(520px, 96vw)",
-              background: "#fff",
+              background: "var(--surface)",
               borderRadius: 16,
-              border: "1px solid #e2e8f0",
+              border: "1px solid var(--border)",
               boxShadow: "0 26px 60px rgba(2,6,23,0.22)",
               padding: 16,
             }}
           >
-            <div style={{ fontWeight: 900, fontSize: 20, color: "#0f172a" }}>Edit Employee</div>
-            <div style={{ marginTop: 4, color: "#64748b", fontWeight: 700 }}>{editing.name}</div>
+            <div style={{ fontWeight: 900, fontSize: 20, color: "var(--text)" }}>Edit Employee</div>
+            <div style={{ marginTop: 4, color: "var(--muted)", fontWeight: 700 }}>{editing.name}</div>
 
            <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
   {/* Name */}

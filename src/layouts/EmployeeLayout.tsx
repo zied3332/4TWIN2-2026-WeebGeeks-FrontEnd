@@ -28,8 +28,6 @@ export default function EmployeeLayout() {
       subtitle="Profile, progress, and skills"
       profilePath="/me/profile"
       nav={[
-        { to: "/me/recommendations", label: "Recommendations" },
-        { to: "/me/history", label: "History" },
         { to: "/me/skills", label: "My Skills" },
         { to: "/me/notifications", label: "Notifications" },
       ]}

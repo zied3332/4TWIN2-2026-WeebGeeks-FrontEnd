@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { FiEdit2, FiEye, FiTrash2, FiPlus, FiX, FiSearch, FiFilter, FiExternalLink } from "react-icons/fi";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   updateActivityById,
   createActivity,
@@ -20,56 +22,198 @@ import {
 import { getUsers, type User } from "../../services/users.service";
 import { getAllDepartments, type Department } from "../../services/departments.service";
 
-const card: React.CSSProperties = {
-  background: "white",
-  border: "1px solid #eaecef",
-  borderRadius: 18,
-  padding: 16,
-};
+// ─────────────────────────────────────────────────────────────
+// 🎨 Design Tokens (keeping your CSS variables + color palette)
+// ─────────────────────────────────────────────────────────────
+const styles = {
+  // Layout containers
+  page: { minHeight: "100vh", background: "var(--bg)", color: "var(--text)", padding: "24px" } as React.CSSProperties,
+  container: { maxWidth: "1400px", margin: "0 auto" } as React.CSSProperties,
+  
+  // Card system
+  card: {
+    background: "var(--card)",
+    border: "1px solid var(--border)",
+    borderRadius: "20px",
+    padding: "20px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+    transition: "box-shadow 0.2s ease, transform 0.2s ease",
+  } as React.CSSProperties,
+  cardHover: {
+    boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+    transform: "translateY(-2px)",
+  } as React.CSSProperties,
+  
+  // Inputs & Forms
+  input: {
+    width: "100%",
+    padding: "12px 16px",
+    borderRadius: "14px",
+    border: "1px solid var(--input-border)",
+    outline: "none",
+    background: "var(--surface)",
+    color: "var(--text)",
+    fontSize: "15px",
+    fontWeight: 500,
+    transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+  } as React.CSSProperties,
+  inputFocus: {
+    borderColor: "var(--primary, #3b82f6)",
+    boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.15)",
+  } as React.CSSProperties,
+  label: {
+    display: "block",
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "var(--muted)",
+    marginBottom: "6px",
+    textTransform: "uppercase",
+    letterSpacing: "0.03em",
+  } as React.CSSProperties,
+  
+  // Buttons
+  btn: {
+    padding: "10px 18px",
+    borderRadius: "14px",
+    border: "1px solid var(--input-border)",
+    background: "var(--surface)",
+    color: "var(--text)",
+    fontWeight: 700,
+    fontSize: "14px",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "8px",
+    transition: "all 0.2s ease",
+  } as React.CSSProperties,
+  btnPrimary: {
+    background: "#1f7a5a",
+    color: "white",
+    border: "none",
+    boxShadow: "0 4px 12px rgba(31, 122, 90, 0.3)",
+  } as React.CSSProperties,
+  btnPrimaryHover: {
+    background: "#1a664a",
+    transform: "translateY(-1px)",
+    boxShadow: "0 6px 16px rgba(31, 122, 90, 0.4)",
+  } as React.CSSProperties,
+  btnDanger: {
+    background: "#fee2e2",
+    color: "#b91c1c",
+    border: "1px solid #fca5a5",
+  } as React.CSSProperties,
+  btnGhost: {
+    background: "transparent",
+    border: "1px dashed var(--border)",
+    color: "var(--muted)",
+  } as React.CSSProperties,
+  
+  // Badges & Tags
+  badge: (bg: string, color: string) => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "5px 12px",
+    borderRadius: "999px",
+    background: bg,
+    color,
+    fontWeight: 700,
+    fontSize: "12px",
+    letterSpacing: "0.02em",
+  }) as React.CSSProperties,
+  
+  // Typography
+  heading: { fontSize: "36px", fontWeight: 800, margin: 0, lineHeight: 1.2 } as React.CSSProperties,
+  subheading: { fontSize: "22px", fontWeight: 700, margin: 0 } as React.CSSProperties,
+  muted: { color: "var(--muted)", fontWeight: 500 } as React.CSSProperties,
+  
+  // Section headers
+  sectionHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    marginBottom: "16px",
+    paddingBottom: "12px",
+    borderBottom: "1px solid var(--border)",
+  } as React.CSSProperties,
+  
+  // Grid layouts
+  grid2: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "14px" } as React.CSSProperties,
+  grid3: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px" } as React.CSSProperties,
+  grid4: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px" } as React.CSSProperties,
+  
+  // Modal overlay
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(2,6,23,0.5)",
+    backdropFilter: "blur(4px)",
+    zIndex: 110,
+    display: "grid",
+    placeItems: "center",
+    padding: "20px",
+  } as React.CSSProperties,
+  
+  // Activity card
+  activityCard: {
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: "16px",
+    padding: "18px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+    minHeight: "240px",
+    transition: "all 0.2s ease",
+    cursor: "pointer",
+  } as React.CSSProperties,
+  activityCardHover: {
+    borderColor: "var(--primary, #3b82f6)",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+  } as React.CSSProperties,
+  
+  // Skill item
+  skillItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "10px 14px",
+    background: "var(--surface)",
+    borderRadius: "12px",
+    border: "1px solid var(--border)",
+  } as React.CSSProperties,
+  
+  // Empty state
+  emptyState: {
+    textAlign: "center",
+    padding: "32px 20px",
+    color: "var(--muted)",
+  } as React.CSSProperties,
+} as const;
 
-const input: React.CSSProperties = {
-  width: "100%",
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: "1px solid #eaecef",
-  outline: "none",
-  fontWeight: 700,
-  background: "#fff",
-};
-
-const btn: React.CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: "1px solid #eaecef",
-  background: "white",
-  fontWeight: 900,
-  cursor: "pointer",
-};
-
-const btnGreen: React.CSSProperties = {
-  ...btn,
-  border: "none",
-  background: "#1f7a5a",
-  color: "white",
-};
-
-const badge = (bg: string, color: string): React.CSSProperties => ({
-  display: "inline-flex",
-  alignItems: "center",
-  padding: "6px 10px",
-  borderRadius: 999,
-  background: bg,
-  color,
-  fontWeight: 900,
-  fontSize: 12,
-});
-
+// ─────────────────────────────────────────────────────────────
+// 📋 Constants & Helpers
+// ─────────────────────────────────────────────────────────────
 const activityTypeOptions: ActivityType[] = ["TRAINING", "CERTIFICATION", "PROJECT", "MISSION", "AUDIT"];
 const levelOptions: DesiredLevel[] = ["LOW", "MEDIUM", "HIGH"];
 const contextOptions: PriorityContext[] = ["UPSKILLING", "EXPERTISE", "DEVELOPMENT"];
 const statusOptions: ActivityStatus[] = ["PLANNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
 const skillLevelOptions: ("LOW" | "MEDIUM" | "HIGH" | "EXPERT")[] = ["LOW", "MEDIUM", "HIGH", "EXPERT"];
 
+const formatLabel = (v: string) => v.charAt(0) + v.slice(1).toLowerCase().replace(/_/g, " ");
+
+const statusPalette: Record<ActivityStatus, { bg: string; color: string }> = {
+  PLANNED: { bg: "#eff6ff", color: "#1d4ed8" },
+  IN_PROGRESS: { bg: "#fef3c7", color: "#a16207" },
+  COMPLETED: { bg: "#ecfdf5", color: "#047857" },
+  CANCELLED: { bg: "#fef2f2", color: "#b91c1c" },
+};
+
+const departmentColors = ["#075985", "#5b21b6", "#c2410c", "#166534", "#be123c", "#7c2d12", "#4338ca"];
+
+// ─────────────────────────────────────────────────────────────
+// 🧩 Types
+// ─────────────────────────────────────────────────────────────
 type FormState = {
   title: string;
   type: ActivityType;
@@ -99,34 +243,17 @@ type AssignFormState = {
 };
 
 const INITIAL_FORM: FormState = {
-  title: "",
-  type: "TRAINING",
-  availableSlots: 1,
-  description: "",
-  location: "",
-  startDate: "",
-  endDate: "",
-  duration: "",
-  status: "PLANNED",
-  responsibleManagerId: "",
-  departmentId: "",
-  priorityContext: "UPSKILLING",
-  targetLevel: "MEDIUM",
+  title: "", type: "TRAINING", availableSlots: 1, description: "", location: "",
+  startDate: "", endDate: "", duration: "", status: "PLANNED",
+  responsibleManagerId: "", departmentId: "", priorityContext: "UPSKILLING", targetLevel: "MEDIUM",
 };
 
-function formatActivityType(v: string) {
-  return v.charAt(0) + v.slice(1).toLowerCase();
-}
-
-function formatLevel(v: string) {
-  return v.charAt(0) + v.slice(1).toLowerCase();
-}
-
-function formatStatus(v: ActivityStatus) {
-  return v.replaceAll("_", " ");
-}
-
+// ─────────────────────────────────────────────────────────────
+// 🚀 Main Component
+// ─────────────────────────────────────────────────────────────
 export default function ActivitiesManagement() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activities, setActivities] = useState<ActivityRecord[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -143,11 +270,10 @@ export default function ActivitiesManagement() {
     try {
       const saved = localStorage.getItem("activityGroupBy");
       if (saved === "department" || saved === "status") return saved;
-    } catch {
-      // ignore
-    }
+    } catch {}
     return "status";
   });
+  
   const [createOpen, setCreateOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [viewMoreOpen, setViewMoreOpen] = useState(false);
@@ -156,72 +282,47 @@ export default function ActivitiesManagement() {
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecord | null>(null);
   const [selectedSkills, setSelectedSkills] = useState<SkillSelectionState[]>([]);
   const [assignForm, setAssignForm] = useState<AssignFormState>({
-    status: "PLANNED",
-    responsibleManagerId: "",
-    departmentId: "",
+    status: "PLANNED", responsibleManagerId: "", departmentId: "",
   });
-
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
 
-  // Persist groupBy preference when it changes
+  const sectionGroupByParam = searchParams.get("sectionGroupBy");
+  const sectionKeyParam = searchParams.get("sectionKey");
+  const isValidSectionGroupBy = sectionGroupByParam === "status" || sectionGroupByParam === "department";
+  const sectionViewGroupBy = isValidSectionGroupBy ? sectionGroupByParam : null;
+  const isSectionView = Boolean(sectionViewGroupBy && sectionKeyParam);
+
+  // Persist preference
   useEffect(() => {
-    try {
-      localStorage.setItem("activityGroupBy", groupBy);
-    } catch {
-      // ignore
-    }
+    try { localStorage.setItem("activityGroupBy", groupBy); } catch {}
   }, [groupBy]);
 
+  // Load data
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       setError("");
       try {
         const [activitiesRes, usersRes, departmentsRes, skillsRes] = await Promise.allSettled([
-          listActivities(),
-          getUsers(),
-          getAllDepartments(),
-          listSkills(),
+          listActivities(), getUsers(), getAllDepartments(), listSkills(),
         ]);
-
-        if (activitiesRes.status === "fulfilled") {
-          setActivities(activitiesRes.value || []);
-        } else {
-          throw activitiesRes.reason;
-        }
-
-        if (usersRes.status === "fulfilled") {
-          setUsers(usersRes.value || []);
-        } else {
-          setUsers([]);
-        }
-
-        if (departmentsRes.status === "fulfilled") {
-          setDepartments(departmentsRes.value || []);
-        } else {
-          setDepartments([]);
-        }
-
-        if (skillsRes.status === "fulfilled") {
-          setSkills(skillsRes.value || []);
-        } else {
-          setSkills([]);
-        }
+        if (activitiesRes.status === "fulfilled") setActivities(activitiesRes.value || []);
+        if (usersRes.status === "fulfilled") setUsers(usersRes.value || []);
+        if (departmentsRes.status === "fulfilled") setDepartments(departmentsRes.value || []);
+        if (skillsRes.status === "fulfilled") setSkills(skillsRes.value || []);
       } catch (e: any) {
         setError(e?.message || "Failed to load data.");
       } finally {
         setLoading(false);
       }
     };
-
     load();
   }, []);
 
-  const managers = useMemo(
-    () => (users || []).filter((u) => String(u.role || "").toUpperCase() === "MANAGER"),
-    [users]
-  );
-
+  // Derived data
+  const managers = useMemo(() => 
+    (users || []).filter((u) => String(u.role || "").toUpperCase() === "MANAGER"), [users]);
+  
   const managerNameById = useMemo(() => {
     const map = new Map<string, string>();
     managers.forEach((m) => map.set(String(m._id), String(m.name || "-")));
@@ -237,38 +338,28 @@ export default function ActivitiesManagement() {
   const filtered = useMemo(() => {
     const search = q.trim().toLowerCase();
     if (!search) return activities;
-
     return activities.filter((a) => {
       const blob = [
-        a.title,
-        a.type,
-        a.location,
-        a.duration,
-        a.startDate,
-        a.endDate,
-        a.status,
+        a.title, a.type, a.location, a.duration, a.startDate, a.endDate, a.status,
         managerNameById.get(a.responsibleManagerId || "") || "",
         departmentNameById.get(a.departmentId || "") || "",
-        a.description,
-        a.priorityContext,
-        a.targetLevel,
+        a.description, a.priorityContext, a.targetLevel,
         ...a.requiredSkills.map((s) => `${s.name} ${s.type} ${s.desiredLevel}`),
-      ]
-        .join(" ")
-        .toLowerCase();
+      ].join(" ").toLowerCase();
       return blob.includes(search);
     });
   }, [activities, q, managerNameById, departmentNameById]);
 
   const groupedBoard = useMemo(() => {
-    const sections: Array<{ key: string; title: string; items: ActivityRecord[] }> = [];
-
+    const sections: Array<{ key: string; title: string; items: ActivityRecord[]; color?: string }> = [];
+    
     if (groupBy === "status") {
       statusOptions.forEach((status) => {
         sections.push({
           key: status,
-          title: formatStatus(status),
+          title: formatLabel(status),
           items: filtered.filter((a) => (a.status || "PLANNED") === status),
+          color: statusPalette[status].color,
         });
       });
       return sections;
@@ -286,9 +377,14 @@ export default function ActivitiesManagement() {
       String(a.name || "").localeCompare(String(b.name || ""))
     );
 
-    orderedDepartments.forEach((d) => {
+    orderedDepartments.forEach((d, i) => {
       const key = String(d._id);
-      sections.push({ key, title: String(d.name || "Unnamed Department"), items: byDepartment.get(key) || [] });
+      sections.push({ 
+        key, 
+        title: String(d.name || "Unnamed Department"), 
+        items: byDepartment.get(key) || [],
+        color: departmentColors[i % departmentColors.length],
+      });
     });
 
     if (byDepartment.has("__unassigned__")) {
@@ -296,28 +392,62 @@ export default function ActivitiesManagement() {
         key: "__unassigned__",
         title: "Unassigned Department",
         items: byDepartment.get("__unassigned__") || [],
+        color: "var(--muted)",
       });
     }
-
     return sections;
   }, [filtered, groupBy, departments]);
 
-  const addSelectedSkill = () => {
-    setSelectedSkills((prev) => [
-      ...prev,
-      { skillId: "", requiredLevel: "MEDIUM", weight: 1 },
-    ]);
+  const activeBoard = useMemo(() => {
+    if (!isSectionView || !sectionViewGroupBy) return groupedBoard;
+
+    const sectionTitle =
+      sectionViewGroupBy === "status"
+        ? formatLabel(sectionKeyParam || "")
+        : sectionKeyParam === "__unassigned__"
+          ? "Unassigned Department"
+          : departmentNameById.get(sectionKeyParam || "") || "Department";
+
+    const sectionItems = filtered.filter((a) => {
+      if (sectionViewGroupBy === "status") return (a.status || "PLANNED") === sectionKeyParam;
+      const departmentKey = a.departmentId || "__unassigned__";
+      return departmentKey === sectionKeyParam;
+    });
+
+    const sectionColor =
+      sectionViewGroupBy === "status"
+        ? statusPalette[(sectionKeyParam as ActivityStatus) || "PLANNED"]?.color || "var(--text)"
+        : "var(--text)";
+
+    return [{ key: sectionKeyParam || "section", title: sectionTitle, items: sectionItems, color: sectionColor }];
+  }, [isSectionView, sectionViewGroupBy, sectionKeyParam, groupedBoard, filtered, departmentNameById]);
+
+  const openSectionView = (sectionKey: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("sectionGroupBy", groupBy);
+    params.set("sectionKey", sectionKey);
+    navigate({ search: params.toString() });
   };
 
-  const removeSelectedSkill = (index: number) => {
+  const clearSectionView = () => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("sectionGroupBy");
+    params.delete("sectionKey");
+    navigate({ search: params.toString() });
+  };
+
+  // ─────────────────────────────────────────────────────────
+  // 🎯 Handlers
+  // ─────────────────────────────────────────────────────────
+  const addSelectedSkill = () => setSelectedSkills((prev) => [
+    ...prev, { skillId: "", requiredLevel: "MEDIUM", weight: 1 },
+  ]);
+
+  const removeSelectedSkill = (index: number) => 
     setSelectedSkills((prev) => prev.filter((_, i) => i !== index));
-  };
 
-  const updateSelectedSkill = (index: number, patch: Partial<SkillSelectionState>) => {
-    setSelectedSkills((prev) =>
-      prev.map((s, i) => (i === index ? { ...s, ...patch } : s))
-    );
-  };
+  const updateSelectedSkill = (index: number, patch: Partial<SkillSelectionState>) => 
+    setSelectedSkills((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
 
   const validate = (): string => {
     if (!form.title.trim()) return "Activity title is required.";
@@ -325,77 +455,57 @@ export default function ActivitiesManagement() {
     if (!form.location.trim()) return "Location is required.";
     if (!form.startDate) return "Start date is required.";
     if (!form.endDate) return "End date is required.";
-    if (form.startDate && form.endDate && new Date(form.endDate).getTime() < new Date(form.startDate).getTime()) {
+    if (form.startDate && form.endDate && new Date(form.endDate) < new Date(form.startDate)) 
       return "End date must be after start date.";
-    }
-    if (!form.duration.trim()) return "Duration is required (example: 4 weeks, 6 days, 40 min).";
-    if (!Number.isFinite(form.availableSlots) || form.availableSlots <= 0) return "Seats or roles must be greater than 0.";
-
+    if (!form.duration.trim()) return "Duration is required (e.g., 4 weeks, 6 days).";
+    if (!Number.isFinite(form.availableSlots) || form.availableSlots <= 0) 
+      return "Seats must be greater than 0.";
     return "";
   };
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-
+    setError(""); setSuccess("");
     const validationErr = validate();
-    if (validationErr) {
-      setError(validationErr);
-      return;
-    }
+    if (validationErr) { setError(validationErr); return; }
 
     const payload: CreateActivityInput = {
-      title: form.title.trim(),
-      type: form.type,
-      requiredSkills: [],
-      availableSlots: Number(form.availableSlots),
-      description: form.description.trim(),
-      location: form.location.trim(),
-      startDate: form.startDate,
-      endDate: form.endDate,
-      duration: form.duration.trim(),
-      status: form.status,
+      title: form.title.trim(), type: form.type, requiredSkills: [],
+      availableSlots: Number(form.availableSlots), description: form.description.trim(),
+      location: form.location.trim(), startDate: form.startDate, endDate: form.endDate,
+      duration: form.duration.trim(), status: form.status,
       responsibleManagerId: form.responsibleManagerId || undefined,
       departmentId: form.departmentId || undefined,
-      priorityContext: form.priorityContext,
-      targetLevel: form.targetLevel,
+      priorityContext: form.priorityContext, targetLevel: form.targetLevel,
     };
 
     setSaving(true);
     try {
       let activity: ActivityRecord;
       if (selectedActivity) {
-        // Edit mode
         activity = await updateActivityById(selectedActivity._id, payload);
         setActivities((prev) => prev.map((a) => (a._id === activity._id ? activity : a)));
-        setSuccess("Activity updated successfully.");
+        setSuccess("✓ Activity updated successfully");
         setSelectedActivity(null);
       } else {
-        // Create mode
         activity = await createActivity(payload);
         setActivities((prev) => [activity, ...prev]);
-        setSuccess("Activity created successfully.");
+        setSuccess("✓ Activity created successfully");
       }
 
-      // Now handle skills - first remove old ones (if editing), then add new ones
+      // Handle skills
       if (selectedActivity) {
-        // Delete old skills for edit mode
         for (const oldSkill of activitySkills) {
           await removeSkillFromActivity(selectedActivity._id, oldSkill.skill_id._id);
         }
       }
-
-      // Add new selected skills
       for (const skillSel of selectedSkills) {
         if (skillSel.skillId) {
           await addSkillToActivity(activity._id, skillSel.skillId, skillSel.requiredLevel, skillSel.weight);
         }
       }
 
-      setForm(INITIAL_FORM);
-      setSelectedSkills([]);
-      setActivitySkills([]);
+      setForm(INITIAL_FORM); setSelectedSkills([]); setActivitySkills([]);
       setCreateOpen(false);
     } catch (e: any) {
       setError(e?.message || "Failed to save activity.");
@@ -409,71 +519,44 @@ export default function ActivitiesManagement() {
     try {
       const skills = await getActivitySkills(a._id);
       setActivitySkills(skills);
-    } catch (e: any) {
-      console.error("Failed to load skills:", e);
-      setActivitySkills([]);
-    }
+    } catch (e) { console.error("Failed to load skills:", e); setActivitySkills([]); }
     setViewMoreOpen(true);
   };
 
   const openEdit = async (a: ActivityRecord) => {
     setSelectedActivity(a);
     setForm({
-      title: a.title,
-      type: a.type,
-      availableSlots: a.availableSlots,
-      description: a.description,
-      location: a.location,
-      startDate: a.startDate,
-      endDate: a.endDate,
-      duration: a.duration,
-      status: a.status,
-      responsibleManagerId: a.responsibleManagerId || "",
-      departmentId: a.departmentId || "",
-      priorityContext: a.priorityContext,
-      targetLevel: a.targetLevel,
+      title: a.title, type: a.type, availableSlots: a.availableSlots,
+      description: a.description, location: a.location, startDate: a.startDate,
+      endDate: a.endDate, duration: a.duration, status: a.status,
+      responsibleManagerId: a.responsibleManagerId || "", departmentId: a.departmentId || "",
+      priorityContext: a.priorityContext, targetLevel: a.targetLevel,
     });
-
-    // Load activity's current skills
     try {
       const actSkills = await getActivitySkills(a._id);
       setActivitySkills(actSkills);
-      const selections: SkillSelectionState[] = actSkills.map((as) => ({
-        skillId: as.skill_id._id,
-        requiredLevel: as.required_level,
-        weight: as.weight,
-      }));
-      setSelectedSkills(selections);
-    } catch (e: any) {
-      console.error("Failed to load skills:", e);
-      setActivitySkills([]);
-      setSelectedSkills([]);
-    }
-
+      setSelectedSkills(actSkills.map((as) => ({
+        skillId: as.skill_id._id, requiredLevel: as.required_level, weight: as.weight,
+      })));
+    } catch (e) { console.error("Failed to load skills:", e); setActivitySkills([]); setSelectedSkills([]); }
     setCreateOpen(true);
   };
 
   const onDelete = async (activityId: string) => {
-    setDeleting(true);
-    setError("");
-    setSuccess("");
+    setDeleting(true); setError(""); setSuccess("");
     try {
       await deleteActivityById(activityId);
       setActivities((prev) => prev.filter((x) => x._id !== activityId));
       setDeleteConfirm(null);
-      setSuccess("Activity deleted successfully.");
+      setSuccess("✓ Activity deleted");
     } catch (e: any) {
       setError(e?.message || "Failed to delete activity.");
-    } finally {
-      setDeleting(false);
-    }
+    } finally { setDeleting(false); }
   };
 
   const saveAssign = async () => {
     if (!selectedActivity) return;
-    setAssignSaving(true);
-    setError("");
-    setSuccess("");
+    setAssignSaving(true); setError(""); setSuccess("");
     try {
       const updated = await updateActivityById(selectedActivity._id, {
         status: assignForm.status,
@@ -481,607 +564,652 @@ export default function ActivitiesManagement() {
         departmentId: assignForm.departmentId || undefined,
       });
       setActivities((prev) => prev.map((x) => (x._id === updated._id ? updated : x)));
-      setAssignOpen(false);
-      setSelectedActivity(null);
-      setSuccess("Activity assignment updated.");
+      setAssignOpen(false); setSelectedActivity(null);
+      setSuccess("✓ Assignment updated");
     } catch (e: any) {
-      setError(e?.message || "Failed to update activity assignment.");
-    } finally {
-      setAssignSaving(false);
-    }
+      setError(e?.message || "Failed to update assignment.");
+    } finally { setAssignSaving(false); }
   };
 
-  return (
-    <div className="page">
-      <div className="container">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 12 }}>
+  // ─────────────────────────────────────────────────────────
+  // 🎨 Render Helpers
+  // ─────────────────────────────────────────────────────────
+  const renderAlert = () => {
+    if (!error && !success) return null;
+    return (
+      <div style={{
+        ...styles.card, marginTop: "16px",
+        borderLeft: `4px solid ${error ? "#dc2626" : "#16a34a"}`,
+        background: error ? "rgba(239,68,68,0.06)" : "rgba(22,163,74,0.08)",
+      }}>
+        <span style={{ color: error ? "#b91c1c" : "#166534", fontWeight: 700 }}>
+          {error || success}
+        </span>
+      </div>
+    );
+  };
+
+  const renderActivityCard = (a: ActivityRecord) => {
+    const statusColors = statusPalette[a.status] || statusPalette.PLANNED;
+    return (
+      <div
+        key={a._id}
+        style={styles.activityCard}
+        onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.activityCardHover)}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "var(--border)";
+          e.currentTarget.style.boxShadow = "none";
+          e.currentTarget.style.transform = "none";
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: "12px" }}>
           <div>
-            <h1 style={{ fontSize: 44, margin: 0 }}>Activity Management</h1>
-            <div style={{ marginTop: 6, color: "#64748b", fontWeight: 700 }}>
-              Create and prioritize training, certification, project, mission, and audit activities.
+            <div style={{ fontWeight: 800, fontSize: "18px", lineHeight: 1.3, color: "var(--text)" }} title={a.title}>
+              {a.title}
+            </div>
+            <div style={{ ...styles.muted, fontSize: "13px", marginTop: "4px" }}>
+              {formatLabel(a.type)} • {a.duration}
             </div>
           </div>
+          <span style={styles.badge(statusColors.bg, statusColors.color)}>
+            {formatLabel(a.status)}
+          </span>
+        </div>
 
+        {/* Meta Grid */}
+        <div style={styles.grid2}>
+          <div>
+            <div style={styles.label}>Priority</div>
+            <div style={{ fontWeight: 600 }}>{formatLabel(a.targetLevel)}</div>
+          </div>
+          <div>
+            <div style={styles.label}>Seats</div>
+            <div style={{ fontWeight: 600 }}>{a.availableSlots}</div>
+          </div>
+          <div>
+            <div style={styles.label}>Context</div>
+            <div style={{ fontWeight: 600 }}>{formatLabel(a.priorityContext)}</div>
+          </div>
+          <div>
+            <div style={styles.label}>Location</div>
+            <div style={{ fontWeight: 600, fontSize: "14px" }}>{a.location}</div>
+          </div>
+        </div>
+
+        {/* Skills Preview */}
+        {a.requiredSkills?.length > 0 && (
+          <div>
+            <div style={styles.label}>Skills</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              {a.requiredSkills.slice(0, 3).map((s, i) => (
+                <span key={i} style={styles.badge("var(--surface-2)", "var(--muted)")}>
+                  {s.name}
+                </span>
+              ))}
+              {a.requiredSkills.length > 3 && (
+                <span style={{ ...styles.muted, fontSize: "12px", alignSelf: "center" }}>
+                  +{a.requiredSkills.length - 3} more
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div style={{ marginTop: "auto", display: "flex", gap: "8px", paddingTop: "12px", borderTop: "1px solid var(--border)" }}>
           <button
             type="button"
-            style={btnGreen}
+            style={{ ...styles.btn, fontSize: "13px", padding: "8px 12px", background: "#e0f2fe", border: "1px solid #7dd3fc", color: "#075985" }}
+            onClick={(e) => { e.stopPropagation(); openViewMore(a); }}
+          >
+            <FiEye size={14} /> View
+          </button>
+          <button
+            type="button"
+            style={{ ...styles.btn, fontSize: "13px", padding: "8px 12px", background: "#ede9fe", border: "1px solid #c4b5fd", color: "#5b21b6" }}
+            onClick={(e) => { e.stopPropagation(); openEdit(a); }}
+          >
+            <FiEdit2 size={14} /> Edit
+          </button>
+          <button
+            type="button"
+            style={{ ...styles.btn, ...styles.btnDanger, fontSize: "13px", padding: "8px 12px" }}
+            onClick={(e) => { e.stopPropagation(); setDeleteConfirm(a._id); }}
+          >
+            <FiTrash2 size={14} /> Delete
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // ─────────────────────────────────────────────────────────
+  // 🖼️ Main Render
+  // ─────────────────────────────────────────────────────────
+  return (
+    <div style={styles.page}>
+      <div style={styles.container}>
+        {/* Header */}
+        <div className="page-header" style={{ alignItems: "start", gap: "16px", flexWrap: "wrap" }}>
+          <div>
+            <h1 className="page-title" style={{ margin: 0 }}>Activity Management</h1>
+            <p className="page-subtitle" style={{ maxWidth: "600px" }}>
+              Create and prioritize training, certification, project, mission, and audit activities.
+            </p>
+          </div>
+          <button
+            type="button"
+            style={{ ...styles.btn, ...styles.btnPrimary, fontSize: "16px", padding: "12px 20px" }}
+            onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.btnPrimaryHover)}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#1f7a5a";
+              e.currentTarget.style.transform = "none";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(31, 122, 90, 0.3)";
+            }}
             onClick={() => {
-              setError("");
-              setSuccess("");
-              setForm(INITIAL_FORM);
-              setCreateOpen(true);
+              setError(""); setSuccess(""); setForm(INITIAL_FORM); setSelectedSkills([]);
+              setSelectedActivity(null); setCreateOpen(true);
             }}
           >
-            + Create New Activity
+            <FiPlus size={18} /> Create New Activity
           </button>
         </div>
 
-     
-        <div style={{ ...card, marginTop: 14, padding: 0, overflow: "hidden" }}>
-          <div style={{ padding: 16, borderBottom: "1px solid #eef2f7" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ fontWeight: 900 }}>Created Activities</div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <select
-                  style={{ ...input, width: 210 }}
-                  value={groupBy}
-                  onChange={(e) => setGroupBy(e.target.value as "status" | "department")}
-                >
-                  <option value="status">Group by Status</option>
-                  <option value="department">Group by Department</option>
-                </select>
-                <input
-                  style={{ ...input, width: 320 }}
-                  placeholder="Search title, type, skill, context..."
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                />
+        {/* Alert */}
+        {renderAlert()}
+
+        {/* Main Board */}
+        <div style={{ ...styles.card, marginTop: "20px", padding: 0, overflow: "hidden" }}>
+          {/* Toolbar */}
+          <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+              <div style={styles.subheading}>Activities</div>
+              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                {/* Group By */}
+                <div style={{ position: "relative" }}>
+                  <FiFilter style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
+                  <select
+                    style={{ ...styles.input, paddingLeft: "38px", width: "230px", cursor: "pointer" }}
+                    value={groupBy}
+                    onChange={(e) => setGroupBy(e.target.value as "status" | "department")}
+                  >
+                    <option value="status">Group by Status</option>
+                    <option value="department">Group by Department</option>
+                  </select>
+                </div>
+                {/* Search */}
+                <div style={{ position: "relative", width: "320px" }}>
+                  <FiSearch style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
+                  <input
+                    style={{ ...styles.input, paddingLeft: "38px" }}
+                    placeholder="Search activities..."
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {loading ? (
-            <div style={{ padding: 16, color: "#64748b", fontWeight: 700 }}>Loading activities...</div>
-          ) : filtered.length === 0 ? (
-            <div style={{ padding: 16, color: "#64748b", fontWeight: 700 }}>No activities created yet.</div>
-          ) : (
-            <div style={{ padding: 16 }}>
-              {groupedBoard.map((section) => {
-                const items = section.items || [];
-                return (
-                  <div key={section.key} style={{ marginBottom: 24 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                      <div style={{ fontWeight: 900, fontSize: 16, color: "#0f172a" }}>{section.title}</div>
-                      <span style={badge("#ecfeff", "#0e7490")}>{items.length}</span>
-                    </div>
-
-                    {items.length === 0 ? (
-                      <div style={{ color: "#94a3b8", fontWeight: 700, padding: 16, background: "#fbfcfe", borderRadius: 12 }}>
-                        No activities
-                      </div>
-                    ) : (
-                      <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8 }}>
-                        {items.map((a) => (
-                          <div
-                            key={a._id}
+          {/* Content */}
+          <div style={{ padding: "24px" }}>
+            {loading ? (
+              <div style={{ ...styles.emptyState, fontSize: "16px" }}>Loading activities...</div>
+            ) : filtered.length === 0 ? (
+              <div style={styles.emptyState}>
+                <div style={{ fontSize: "48px", marginBottom: "12px" }}>📭</div>
+                <div style={{ fontWeight: 700, fontSize: "18px", marginBottom: "4px" }}>No activities found</div>
+                <div style={{ fontSize: "14px" }}>Try adjusting your search or create a new activity</div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+                {activeBoard.map((section) => {
+                  const items = section.items || [];
+                  const visibleItems = isSectionView ? items : items.slice(-3);
+                  const hasOverflow = !isSectionView && items.length > 3;
+                  return (
+                    <div key={section.key}>
+                      <div style={styles.sectionHeader}>
+                        <div style={{ fontWeight: 800, fontSize: "20px", color: section.color || "var(--text)" }}>
+                          {section.title}
+                        </div>
+                        <span style={styles.badge("var(--surface-2)", "var(--muted)")}>{items.length}</span>
+                        {hasOverflow && (
+                          <button
+                            type="button"
                             style={{
-                              background: "#fff",
-                              border: "1px solid #e5e7eb",
-                              borderRadius: 14,
-                              padding: 14,
-                              minWidth: 360,
-                              flexShrink: 0,
-                              display: "grid",
-                              gridTemplateColumns: "1fr auto",
-                              gap: 12,
-                              alignItems: "start",
+                              ...styles.btn,
+                              marginLeft: "auto",
+                              padding: "8px 12px",
+                              borderRadius: "12px",
+                              background: "#e0f2fe",
+                              border: "1px solid #7dd3fc",
+                              color: "#075985",
+                              fontSize: "13px",
+                              fontWeight: 800,
                             }}
+                            title={`Show all ${section.title} activities`}
+                            onClick={() => openSectionView(section.key)}
                           >
-                            <div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-                                <div style={{ fontWeight: 900, color: "#0f172a", lineHeight: 1.3, fontSize: 14 }} title={a.title}>
-                                  {a.title.length > 46 ? a.title.substring(0, 46) + "..." : a.title}
-                                </div>
-                                <span style={badge("#eef2ff", "#3730a3")}>{formatStatus(a.status || "PLANNED")}</span>
-                                <span style={badge("#e0f2fe", "#0369a1")}>{a.priorityContext}</span>
-                              </div>
-
-
-                              <div
-                                style={{
-                                  display: "grid",
-                                  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-                                  gap: 10,
-                                }}
-                              >
-                                <div>
-                                  <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", marginBottom: 2 }}>TYPE</div>
-                                  <div style={{ color: "#475569", fontSize: 12 }}>{formatActivityType(a.type)}</div>
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", marginBottom: 2 }}>PRIORITY</div>
-                                  <div style={{ color: "#475569", fontSize: 12 }}>{formatLevel(a.targetLevel)}</div>
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", marginBottom: 2 }}>START DATE</div>
-                                  <div style={{ color: "#475569", fontSize: 12 }}>{new Date(a.startDate).toLocaleDateString()}</div>
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", marginBottom: 2 }}>SEATS LEFT</div>
-                                  <div style={{ color: "#475569", fontSize: 12 }}>{a.availableSlots}</div>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div style={{ display: "flex", gap: 6, flexDirection: "column", minWidth: 110 }}>
-                              <button type="button" style={{ ...btn, fontSize: 12, padding: "8px 10px" }} onClick={() => openViewMore(a)}>
-                                View More
-                              </button>
-                              <button type="button" style={{ ...btn, fontSize: 12, padding: "8px 10px", background: "#f0f4f8" }} onClick={() => openEdit(a)}>
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                style={{ ...btn, fontSize: 12, padding: "8px 10px", color: "#dc2626", border: "1px solid #fecaca" }}
-                                onClick={() => setDeleteConfirm(a._id)}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                            <FiExternalLink size={16} /> View all
+                          </button>
+                        )}
+                        {isSectionView && (
+                          <button
+                            type="button"
+                            style={{ ...styles.btn, marginLeft: "auto", padding: "6px 12px", fontSize: "12px" }}
+                            onClick={clearSectionView}
+                          >
+                            Back to all sections
+                          </button>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                      {items.length === 0 ? (
+                        <div style={{ ...styles.emptyState, padding: "20px", background: "var(--surface)", borderRadius: "14px" }}>
+                          No activities in this section
+                        </div>
+                      ) : (
+                        <div
+                          style={
+                            isSectionView
+                              ? {
+                                  display: "grid",
+                                  gap: "16px",
+                                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                                  width: "100%",
+                                  maxWidth: "1120px",
+                                }
+                              : { display: "flex", gap: "16px", overflowX: "auto", paddingBottom: "8px", scrollBehavior: "smooth" }
+                          }
+                        >
+                          {visibleItems.map((a) => renderActivityCard(a))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
+        {/* ─────────────────────────────────────────────
+            📝 Create/Edit Modal
+            ───────────────────────────────────────────── */}
         {createOpen && (
           <div
             onClick={() => !saving && (setCreateOpen(false), setSelectedActivity(null))}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(2,6,23,0.45)",
-              zIndex: 110,
-              display: "grid",
-              placeItems: "center",
-              padding: 16,
-            }}
+            style={styles.modalOverlay}
           >
             <form
               onSubmit={onCreate}
               onClick={(e) => e.stopPropagation()}
               style={{
-                width: "min(1100px, 96vw)",
-                maxHeight: "90vh",
-                overflowY: "auto",
-                ...card,
+                ...styles.card, width: "min(1100px, 98vw)", maxHeight: "92vh",
+                overflowY: "auto", fontSize: "15px", padding: "28px",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <div style={{ fontWeight: 900, fontSize: 18, color: "#0f172a" }}>
-                  {selectedActivity ? "Edit Activity" : "Create Activity"}
+              {/* Modal Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", paddingBottom: "16px", borderBottom: "1px solid var(--border)" }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: "24px", color: "var(--text)" }}>
+                    {selectedActivity ? "✏️ Edit Activity" : "✨ Create Activity"}
+                  </div>
+                  <div style={{ ...styles.muted, fontSize: "14px", marginTop: "4px" }}>
+                    Fill in the details below to {selectedActivity ? "update" : "create"} this activity
+                  </div>
                 </div>
-                <button type="button" style={btn} onClick={() => !saving && (setCreateOpen(false), setSelectedActivity(null))}>
-                  Close
+                <button 
+                  type="button" 
+                  style={{ ...styles.btn, padding: "8px 14px" }} 
+                  onClick={() => !saving && (setCreateOpen(false), setSelectedActivity(null))}
+                >
+                  <FiX size={16} /> Close
                 </button>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 10 }}>
-                <input
-                  style={input}
-                  placeholder="Activity title"
-                  value={form.title}
-                  onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                />
-      {(error || success) && (
-          <div style={{ ...card, marginTop: 12, borderColor: error ? "rgba(239,68,68,0.25)" : "rgba(22,163,74,0.25)", background: error ? "rgba(239,68,68,0.06)" : "rgba(22,163,74,0.08)" }}>
-            <span style={{ color: error ? "#b91c1c" : "#166534", fontWeight: 800 }}>{error || success}</span>
-          </div>
-        )}
-
-                <select
-                  style={input}
-                  value={form.type}
-                  onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value as ActivityType }))}
-                >
-                  {activityTypeOptions.map((x) => (
-                    <option key={x} value={x}>
-                      {formatActivityType(x)}
-                    </option>
-                  ))}
-                </select>
+              {/* Basic Info */}
+              <div style={{ marginBottom: "24px" }}>
+                <div style={{ fontWeight: 800, fontSize: "16px", marginBottom: "16px", color: "var(--text)" }}>📋 Basic Information</div>
+                <div style={styles.grid2}>
+                  <div>
+                    <label style={styles.label}>Activity Title *</label>
+                    <input
+                      style={styles.input}
+                      placeholder="e.g., Advanced React Patterns Workshop"
+                      value={form.title}
+                      onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label style={styles.label}>Type</label>
+                    <select
+                      style={styles.input}
+                      value={form.type}
+                      onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value as ActivityType }))}
+                    >
+                      {activityTypeOptions.map((x) => <option key={x} value={x}>{formatLabel(x)}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ marginTop: "14px" }}>
+                  <label style={styles.label}>Description *</label>
+                  <textarea
+                    style={{ ...styles.input, minHeight: "100px", resize: "vertical" }}
+                    placeholder="Detailed description of the activity..."
+                    value={form.description}
+                    onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                  />
+                </div>
               </div>
 
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontWeight: 900, color: "#0f172a", marginBottom: 8 }}>Required Skills</div>
-
+              {/* Skills Section */}
+              <div style={{ marginBottom: "24px", padding: "16px", background: "var(--surface)", borderRadius: "16px", border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                  <div style={{ fontWeight: 800, fontSize: "16px", color: "var(--text)" }}>🎯 Required Skills</div>
+                  {skills.length > 0 && (
+                    <button type="button" style={{ ...styles.btn, ...styles.btnGhost, fontSize: "13px" }} onClick={addSelectedSkill}>
+                      <FiPlus size={14} /> Add Skill
+                    </button>
+                  )}
+                </div>
+                
                 {skills.length === 0 ? (
-                  <div style={{ color: "#a3a3a3", fontSize: 13, marginBottom: 8 }}>
-                    No skills available in the system.
+                  <div style={{ ...styles.muted, fontSize: "14px", textAlign: "center", padding: "12px" }}>
+                    No skills available in the system yet.
+                  </div>
+                ) : selectedSkills.length === 0 ? (
+                  <div style={{ ...styles.muted, fontSize: "14px", textAlign: "center", padding: "12px" }}>
+                    Click "Add Skill" to define required competencies
                   </div>
                 ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     {selectedSkills.map((skillSel, index) => (
-                      <div key={index} style={{ display: "grid", gap: 6, paddingBottom: 12, borderBottom: "1px solid #eaecef" }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Skill</div>
-                            <select
-                              style={input}
-                              value={skillSel.skillId}
-                              onChange={(e) => updateSelectedSkill(index, { skillId: e.target.value })}
-                            >
-                              <option value="">-- Select a skill --</option>
-                              {skills.map((s) => (
-                                <option key={s._id} value={s._id}>
-                                  {s.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Required Level</div>
-                            <select
-                              style={input}
-                              value={skillSel.requiredLevel}
-                              onChange={(e) =>
-                                updateSelectedSkill(index, { requiredLevel: e.target.value as "LOW" | "MEDIUM" | "HIGH" | "EXPERT" })
-                              }
-                            >
-                              {skillLevelOptions.map((x) => (
-                                <option key={x} value={x}>
-                                  {formatLevel(x)}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Importance Weight</div>
-                            <input
-                              style={input}
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="5"
-                              placeholder="0-100"
-                              title="Importance score for recommendation ranking (0-100%)"
-                              value={(skillSel.weight * 100).toFixed(0)}
-                              onChange={(e) => {
-                                const percentage = Math.max(0, Math.min(100, Number(e.target.value)));
-                                updateSelectedSkill(index, { weight: percentage / 100 });
-                              }}
-                            />
-                          </div>
-
-                          <button type="button" style={btn} onClick={() => removeSelectedSkill(index)}>
-                            Remove
-                          </button>
-                        </div>
+                      <div key={index} style={styles.skillItem}>
+                        <select
+                          style={{ ...styles.input, flex: 2 }}
+                          value={skillSel.skillId}
+                          onChange={(e) => updateSelectedSkill(index, { skillId: e.target.value })}
+                        >
+                          <option value="">-- Select skill --</option>
+                          {skills.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+                        </select>
+                        <select
+                          style={{ ...styles.input, flex: 1 }}
+                          value={skillSel.requiredLevel}
+                          onChange={(e) => updateSelectedSkill(index, { requiredLevel: e.target.value as any })}
+                        >
+                          {skillLevelOptions.map((x) => <option key={x} value={x}>{formatLabel(x)}</option>)}
+                        </select>
+                        <input
+                          style={{ ...styles.input, flex: 1, textAlign: "center" }}
+                          type="number" min="0" max="100"
+                          placeholder="Weight %"
+                          value={Math.round(skillSel.weight * 100)}
+                          onChange={(e) => {
+                            const pct = Math.max(0, Math.min(100, Number(e.target.value)));
+                            updateSelectedSkill(index, { weight: pct / 100 });
+                          }}
+                        />
+                        <button 
+                          type="button" 
+                          style={{ ...styles.btn, ...styles.btnDanger, padding: "10px 12px" }}
+                          onClick={() => removeSelectedSkill(index)}
+                        >
+                          <FiX size={14} />
+                        </button>
                       </div>
                     ))}
                   </div>
                 )}
-
-                {skills.length > 0 && (
-                  <button type="button" style={{ ...btn, marginTop: 8 }} onClick={addSelectedSkill}>
-                    + Add skill requirement
-                  </button>
-                )}
               </div>
 
-              <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
-                <div>
-                  <div style={{ marginBottom: 6, color: "#64748b", fontWeight: 800, fontSize: 12 }}>
-                    Number of Seats
+              {/* Logistics Grid */}
+              <div style={{ marginBottom: "24px" }}>
+                <div style={{ fontWeight: 800, fontSize: "16px", marginBottom: "16px", color: "var(--text)" }}>📅 Logistics</div>
+                <div style={styles.grid4}>
+                  <div>
+                    <label style={styles.label}>Seats</label>
+                    <input
+                      style={styles.input} type="number" min="1"
+                      value={form.availableSlots}
+                      onChange={(e) => setForm((prev) => ({ ...prev, availableSlots: Number(e.target.value || 0) }))}
+                    />
                   </div>
-                  <input
-                    style={input}
-                    type="number"
-                    min={1}
-                    placeholder="Example: 20"
-                    value={form.availableSlots}
-                    onChange={(e) => setForm((prev) => ({ ...prev, availableSlots: Number(e.target.value || 0) }))}
-                  />
-                </div>
-
-                <input
-                  style={input}
-                  placeholder="Location"
-                  value={form.location}
-                  onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
-                />
-
-                <input
-                  style={input}
-                  type="date"
-                  value={form.startDate}
-                  onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))}
-                />
-
-                <input
-                  style={input}
-                  type="date"
-                  value={form.endDate}
-                  onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))}
-                />
-              </div>
-
-              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
-                <div>
-                  <div style={{ marginBottom: 6, color: "#64748b", fontWeight: 800, fontSize: 12 }}>
-                    Duration
+                  <div>
+                    <label style={styles.label}>Location</label>
+                    <input
+                      style={styles.input} placeholder="e.g., Remote, Paris HQ"
+                      value={form.location}
+                      onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
+                    />
                   </div>
-                  <input
-                    style={input}
-                    type="text"
-                    placeholder="Examples: 4 weeks, 6 days, 40 min"
-                    value={form.duration}
-                    onChange={(e) => setForm((prev) => ({ ...prev, duration: e.target.value }))}
-                  />
+                  <div>
+                    <label style={styles.label}>Start Date *</label>
+                    <input
+                      style={styles.input} type="date"
+                      value={form.startDate}
+                      onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label style={styles.label}>End Date *</label>
+                    <input
+                      style={styles.input} type="date"
+                      value={form.endDate}
+                      onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))}
+                    />
+                  </div>
                 </div>
-
-                <select
-                  style={input}
-                  value={form.status}
-                  onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as ActivityStatus }))}
-                >
-                  {statusOptions.map((x) => (
-                    <option key={x} value={x}>
-                      {formatStatus(x)}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  style={input}
-                  value={form.responsibleManagerId}
-                  onChange={(e) => setForm((prev) => ({ ...prev, responsibleManagerId: e.target.value }))}
-                >
-                  <option value="">Responsible Manager (optional)</option>
-                  {managers.map((m) => (
-                    <option key={m._id} value={m._id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  style={input}
-                  value={form.departmentId}
-                  onChange={(e) => setForm((prev) => ({ ...prev, departmentId: e.target.value }))}
-                >
-                  <option value="">Department (optional)</option>
-                  {departments.map((d) => (
-                    <option key={d._id} value={d._id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
+                <div style={{ ...styles.grid4, marginTop: "14px" }}>
+                  <div>
+                    <label style={styles.label}>Duration</label>
+                    <input
+                      style={styles.input} placeholder="e.g., 4 weeks"
+                      value={form.duration}
+                      onChange={(e) => setForm((prev) => ({ ...prev, duration: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label style={styles.label}>Status</label>
+                    <select
+                      style={styles.input}
+                      value={form.status}
+                      onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as ActivityStatus }))}
+                    >
+                      {statusOptions.map((x) => <option key={x} value={x}>{formatLabel(x)}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={styles.label}>Manager</label>
+                    <select
+                      style={styles.input}
+                      value={form.responsibleManagerId}
+                      onChange={(e) => setForm((prev) => ({ ...prev, responsibleManagerId: e.target.value }))}
+                    >
+                      <option value="">Optional</option>
+                      {managers.map((m) => <option key={m._id} value={m._id}>{m.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={styles.label}>Department</label>
+                    <select
+                      style={styles.input}
+                      value={form.departmentId}
+                      onChange={(e) => setForm((prev) => ({ ...prev, departmentId: e.target.value }))}
+                    >
+                      <option value="">Optional</option>
+                      {departments.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <select
-                  style={input}
-                  value={form.priorityContext}
-                  onChange={(e) => setForm((prev) => ({ ...prev, priorityContext: e.target.value as PriorityContext }))}
-                >
-                  {contextOptions.map((x) => (
-                    <option key={x} value={x}>
-                      {formatActivityType(x)}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  style={input}
-                  value={form.targetLevel}
-                  onChange={(e) => setForm((prev) => ({ ...prev, targetLevel: e.target.value as DesiredLevel }))}
-                >
-                  {levelOptions.map((x) => (
-                    <option key={x} value={x}>
-                      {formatLevel(x)}
-                    </option>
-                  ))}
-                </select>
+              {/* Prioritization */}
+              <div style={{ marginBottom: "24px" }}>
+                <div style={{ fontWeight: 800, fontSize: "16px", marginBottom: "16px", color: "var(--text)" }}>🎯 Prioritization</div>
+                <div style={styles.grid2}>
+                  <div>
+                    <label style={styles.label}>Context</label>
+                    <select
+                      style={styles.input}
+                      value={form.priorityContext}
+                      onChange={(e) => setForm((prev) => ({ ...prev, priorityContext: e.target.value as PriorityContext }))}
+                    >
+                      {contextOptions.map((x) => <option key={x} value={x}>{formatLabel(x)}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={styles.label}>Target Level</label>
+                    <select
+                      style={styles.input}
+                      value={form.targetLevel}
+                      onChange={(e) => setForm((prev) => ({ ...prev, targetLevel: e.target.value as DesiredLevel }))}
+                    >
+                      {levelOptions.map((x) => <option key={x} value={x}>{formatLabel(x)}</option>)}
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <textarea
-                style={{ ...input, marginTop: 10, minHeight: 100, resize: "vertical" }}
-                placeholder="Detailed description"
-                value={form.description}
-                onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-              />
-
-              <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <div style={{ color: "#64748b", fontWeight: 700 }}>
-                  Prioritization uses context and target level (low/medium/high).
+              {/* Footer */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "20px", borderTop: "1px solid var(--border)" }}>
+                <div style={{ ...styles.muted, fontSize: "14px" }}>
+                  💡 Prioritization uses context + target level for smart recommendations
                 </div>
-                <button type="submit" style={btnGreen} disabled={saving}>
-                  {saving ? (selectedActivity ? "Updating..." : "Creating...") : (selectedActivity ? "Update Activity" : "Create Activity")}
+                <button 
+                  type="submit" 
+                  style={{ ...styles.btn, ...styles.btnPrimary, fontSize: "15px", padding: "12px 28px" }}
+                  disabled={saving}
+                >
+                  {saving ? (selectedActivity ? "Updating..." : "Creating...") : (selectedActivity ? "✓ Update Activity" : "✨ Create Activity")}
                 </button>
               </div>
             </form>
           </div>
         )}
 
+        {/* ─────────────────────────────────────────────
+            👥 Assign Modal
+            ───────────────────────────────────────────── */}
         {assignOpen && selectedActivity && (
-          <div
-            onClick={() => !assignSaving && setAssignOpen(false)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(2,6,23,0.45)",
-              zIndex: 110,
-              display: "grid",
-              placeItems: "center",
-              padding: 16,
-            }}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{ width: "min(560px, 96vw)", ...card }}
-            >
-              <div style={{ fontWeight: 900, fontSize: 18, color: "#0f172a" }}>Assign Activity</div>
-              <div style={{ marginTop: 4, color: "#64748b", fontWeight: 700 }}>{selectedActivity.title}</div>
-
-              <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-                <select
-                  style={input}
-                  value={assignForm.status}
-                  onChange={(e) => setAssignForm((prev) => ({ ...prev, status: e.target.value as ActivityStatus }))}
-                >
-                  {statusOptions.map((x) => (
-                    <option key={x} value={x}>
-                      {formatStatus(x)}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  style={input}
-                  value={assignForm.responsibleManagerId}
-                  onChange={(e) => setAssignForm((prev) => ({ ...prev, responsibleManagerId: e.target.value }))}
-                >
-                  <option value="">Responsible Manager (optional)</option>
-                  {managers.map((m) => (
-                    <option key={m._id} value={m._id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  style={input}
-                  value={assignForm.departmentId}
-                  onChange={(e) => setAssignForm((prev) => ({ ...prev, departmentId: e.target.value }))}
-                >
-                  <option value="">Department (optional)</option>
-                  {departments.map((d) => (
-                    <option key={d._id} value={d._id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
+          <div onClick={() => !assignSaving && setAssignOpen(false)} style={styles.modalOverlay}>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: "min(520px, 96vw)", ...styles.card, padding: "24px" }}>
+              <div style={{ fontWeight: 800, fontSize: "20px", color: "var(--text)", marginBottom: "4px" }}>👥 Assign Activity</div>
+              <div style={{ ...styles.muted, fontSize: "14px", marginBottom: "20px" }}>{selectedActivity.title}</div>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div>
+                  <label style={styles.label}>Status</label>
+                  <select
+                    style={styles.input}
+                    value={assignForm.status}
+                    onChange={(e) => setAssignForm((prev) => ({ ...prev, status: e.target.value as ActivityStatus }))}
+                  >
+                    {statusOptions.map((x) => <option key={x} value={x}>{formatLabel(x)}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={styles.label}>Responsible Manager</label>
+                  <select
+                    style={styles.input}
+                    value={assignForm.responsibleManagerId}
+                    onChange={(e) => setAssignForm((prev) => ({ ...prev, responsibleManagerId: e.target.value }))}
+                  >
+                    <option value="">Optional</option>
+                    {managers.map((m) => <option key={m._id} value={m._id}>{m.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={styles.label}>Department</label>
+                  <select
+                    style={styles.input}
+                    value={assignForm.departmentId}
+                    onChange={(e) => setAssignForm((prev) => ({ ...prev, departmentId: e.target.value }))}
+                  >
+                    <option value="">Optional</option>
+                    {departments.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
+                  </select>
+                </div>
               </div>
 
-              <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end", gap: 10 }}>
-                <button type="button" style={btn} onClick={() => !assignSaving && setAssignOpen(false)}>
-                  Cancel
-                </button>
-                <button type="button" style={btnGreen} disabled={assignSaving} onClick={saveAssign}>
-                  {assignSaving ? "Saving..." : "Save"}
+              <div style={{ marginTop: "24px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+                <button type="button" style={styles.btn} onClick={() => !assignSaving && setAssignOpen(false)}>Cancel</button>
+                <button type="button" style={{ ...styles.btn, ...styles.btnPrimary }} disabled={assignSaving} onClick={saveAssign}>
+                  {assignSaving ? "Saving..." : "✓ Save Assignment"}
                 </button>
               </div>
             </div>
           </div>
         )}
 
+        {/* ─────────────────────────────────────────────
+            👁️ View More Modal
+            ───────────────────────────────────────────── */}
         {viewMoreOpen && selectedActivity && (
-          <div
-            onClick={() => setViewMoreOpen(false)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(2,6,23,0.45)",
-              zIndex: 110,
-              display: "grid",
-              placeItems: "center",
-              padding: 16,
-            }}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{ width: "min(640px, 96vw)", maxHeight: "85vh", overflowY: "auto", ...card }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 12, marginBottom: 12 }}>
+          <div onClick={() => setViewMoreOpen(false)} style={styles.modalOverlay}>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: "min(680px, 96vw)", maxHeight: "88vh", overflowY: "auto", ...styles.card, padding: "24px" }}>
+              {/* Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: "12px", marginBottom: "20px", paddingBottom: "16px", borderBottom: "1px solid var(--border)" }}>
                 <div>
-                  <div style={{ fontWeight: 900, fontSize: 18, color: "#0f172a" }}>{selectedActivity.title}</div>
-                  <div style={{ marginTop: 4, color: "#64748b", fontWeight: 700 }}>{selectedActivity.type}</div>
+                  <div style={{ fontWeight: 800, fontSize: "22px", color: "var(--text)" }}>{selectedActivity.title}</div>
+                  <div style={{ ...styles.muted, fontSize: "14px", marginTop: "4px" }}>
+                    {formatLabel(selectedActivity.type)} • <span style={styles.badge(statusPalette[selectedActivity.status].bg, statusPalette[selectedActivity.status].color)}>{formatLabel(selectedActivity.status)}</span>
+                  </div>
                 </div>
-                <button type="button" style={btn} onClick={() => setViewMoreOpen(false)}>
-                  Close
-                </button>
+                <button type="button" style={styles.btn} onClick={() => setViewMoreOpen(false)}><FiX size={16} /> Close</button>
               </div>
 
-              <div style={{ display: "grid", gap: 12 }}>
+              {/* Details Grid */}
+              <div style={{ display: "grid", gap: "18px" }}>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Description</div>
-                  <div style={{ color: "#475569", fontSize: 14, lineHeight: 1.5 }}>{selectedActivity.description}</div>
+                  <div style={styles.label}>Description</div>
+                  <div style={{ color: "var(--text)", lineHeight: 1.6 }}>{selectedActivity.description || "—"}</div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Location</div>
-                    <div style={{ color: "#475569" }}>{selectedActivity.location}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Duration</div>
-                    <div style={{ color: "#475569" }}>{selectedActivity.duration}</div>
-                  </div>
+                <div style={styles.grid2}>
+                  <div><div style={styles.label}>Location</div><div>{selectedActivity.location || "—"}</div></div>
+                  <div><div style={styles.label}>Duration</div><div>{selectedActivity.duration || "—"}</div></div>
+                  <div><div style={styles.label}>Start Date</div><div>{selectedActivity.startDate || "—"}</div></div>
+                  <div><div style={styles.label}>End Date</div><div>{selectedActivity.endDate || "—"}</div></div>
+                  <div><div style={styles.label}>Available Seats</div><div>{selectedActivity.availableSlots}</div></div>
+                  <div><div style={styles.label}>Target Level</div><div>{formatLabel(selectedActivity.targetLevel)}</div></div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={styles.grid2}>
                   <div>
-                    <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Start Date</div>
-                    <div style={{ color: "#475569" }}>{selectedActivity.startDate}</div>
+                    <div style={styles.label}>Context</div>
+                    <span style={styles.badge("#e0f2fe", "#0369a1")}>{formatLabel(selectedActivity.priorityContext)}</span>
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>End Date</div>
-                    <div style={{ color: "#475569" }}>{selectedActivity.endDate}</div>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Seats</div>
-                    <div style={{ color: "#475569" }}>{selectedActivity.availableSlots}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Status</div>
-                    <div><span style={badge("#eef2ff", "#3730a3")}>{formatStatus(selectedActivity.status)}</span></div>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Context</div>
-                    <div><span style={badge("#e0f2fe", "#0369a1")}>{selectedActivity.priorityContext}</span></div>
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Level</div>
-                    <div style={{ color: "#475569" }}>{selectedActivity.targetLevel}</div>
+                    <div style={styles.label}>Manager</div>
+                    <div>{managerNameById.get(selectedActivity.responsibleManagerId || "") || "Unassigned"}</div>
                   </div>
                 </div>
 
                 <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Manager</div>
-                  <div style={{ color: "#475569" }}>{managerNameById.get(selectedActivity.responsibleManagerId || "") || "Unassigned"}</div>
-                </div>
-
-                <div>
-                  <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Department</div>
-                  <div style={{ color: "#475569" }}>{departmentNameById.get(selectedActivity.departmentId || "") || "Unassigned"}</div>
+                  <div style={styles.label}>Department</div>
+                  <div>{departmentNameById.get(selectedActivity.departmentId || "") || "Unassigned"}</div>
                 </div>
 
                 {activitySkills.length > 0 && (
                   <div>
-                    <div style={{ fontWeight: 700, color: "#64748b", marginBottom: 4 }}>Required Skills</div>
-                    <div style={{ display: "grid", gap: 8 }}>
+                    <div style={styles.label}>Required Skills</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "8px" }}>
                       {activitySkills.map((as, idx) => (
-                        <div key={idx} style={{ borderLeft: "3px solid #e0f2fe", paddingLeft: 12, color: "#475569", fontSize: 13 }}>
+                        <div key={idx} style={{ 
+                          padding: "12px 16px", background: "var(--surface)", 
+                          borderRadius: "12px", borderLeft: "3px solid #3b82f6" 
+                        }}>
                           <div style={{ fontWeight: 700 }}>{as.skill_id.name}</div>
-                          <div style={{ fontSize: 11, color: "#a3a3a3", marginTop: 2 }}>
-                            Level: <span style={{ fontWeight: 700 }}>{as.required_level}</span> | Weight: <span style={{ fontWeight: 700 }}>{(as.weight * 100).toFixed(0)}%</span>
+                          <div style={{ ...styles.muted, fontSize: "13px", marginTop: "4px" }}>
+                            Level: <strong>{formatLabel(as.required_level)}</strong> • 
+                            Weight: <strong>{Math.round(as.weight * 100)}%</strong>
                           </div>
                           {as.skill_id.description && (
-                            <div style={{ fontSize: 11, marginTop: 4, color: "#64748b" }}>
+                            <div style={{ ...styles.muted, fontSize: "13px", marginTop: "6px", fontStyle: "italic" }}>
                               {as.skill_id.description}
                             </div>
                           )}
@@ -1091,49 +1219,29 @@ export default function ActivitiesManagement() {
                   </div>
                 )}
               </div>
-
-              <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end", gap: 10 }}>
-                <button type="button" style={btn} onClick={() => setViewMoreOpen(false)}>
-                  Close
-                </button>
-              </div>
             </div>
           </div>
         )}
 
+        {/* ─────────────────────────────────────────────
+            🗑️ Delete Confirmation
+            ───────────────────────────────────────────── */}
         {deleteConfirm && (
-          <div
-            onClick={() => !deleting && setDeleteConfirm(null)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(2,6,23,0.45)",
-              zIndex: 120,
-              display: "grid",
-              placeItems: "center",
-              padding: 16,
-            }}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{ width: "min(420px, 96vw)", ...card }}
-            >
-              <div style={{ fontWeight: 900, fontSize: 16, color: "#dc2626" }}>Delete Activity?</div>
-              <div style={{ marginTop: 8, color: "#64748b", fontWeight: 700 }}>
-                This action cannot be undone. Are you sure you want to delete this activity?
+          <div onClick={() => !deleting && setDeleteConfirm(null)} style={styles.modalOverlay}>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: "min(440px, 96vw)", ...styles.card, padding: "24px", borderLeft: "4px solid #dc2626" }}>
+              <div style={{ fontWeight: 800, fontSize: "18px", color: "#dc2626", marginBottom: "12px" }}>⚠️ Delete Activity?</div>
+              <div style={{ ...styles.muted, marginBottom: "20px" }}>
+                This action cannot be undone. Are you sure you want to permanently delete this activity?
               </div>
-
-              <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end", gap: 10 }}>
-                <button type="button" style={btn} disabled={deleting} onClick={() => setDeleteConfirm(null)}>
-                  Cancel
-                </button>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+                <button type="button" style={styles.btn} disabled={deleting} onClick={() => setDeleteConfirm(null)}>Cancel</button>
                 <button
                   type="button"
-                  style={{ ...btn, background: "#dc2626", color: "white", border: "none" }}
+                  style={{ ...styles.btn, background: "#dc2626", color: "white", border: "none" }}
                   disabled={deleting}
                   onClick={() => onDelete(deleteConfirm)}
                 >
-                  {deleting ? "Deleting..." : "Delete Activity"}
+                  {deleting ? "Deleting..." : "🗑️ Delete"}
                 </button>
               </div>
             </div>

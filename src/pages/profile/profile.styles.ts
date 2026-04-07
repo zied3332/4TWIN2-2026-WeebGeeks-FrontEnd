@@ -8,16 +8,16 @@ export type BtnVariant = "primary" | "outline" | "danger";
  * Small design tokens (consistent look)
  */
 const TOKENS = {
-  border: "1px solid rgba(148,163,184,0.22)",
-  softBorder: "1px solid rgba(148,163,184,0.16)",
-  bg: "#f6f8fb",
-  cardBg: "#ffffff",
-  text: "#0f172a",
-  muted: "#64748b",
+  border: "1px solid color-mix(in srgb, var(--border) 82%, transparent)",
+  softBorder: "1px solid color-mix(in srgb, var(--border) 68%, transparent)",
+  bg: "var(--surface-2)",
+  cardBg: "var(--surface)",
+  text: "var(--text)",
+  muted: "var(--muted)",
   ring: "0 0 0 4px rgba(31,122,90,0.10)",
   shadow: "0 18px 50px rgba(2, 6, 23, 0.06)",
   shadow2: "0 2px 10px rgba(2, 6, 23, 0.06)",
-  radius: 18,
+  radius: 24,
 };
 
 export const PILL_TONES: Record<Tone, { bg: string; bd: string; fg: string }> = {
@@ -28,18 +28,19 @@ export const PILL_TONES: Record<Tone, { bg: string; bd: string; fg: string }> = 
 
 const BTN_BASE: React.CSSProperties = {
   width: "100%",
-  padding: "11px 12px",
-  borderRadius: 12,
+  padding: "16px 20px",
+  borderRadius: 16,
   fontWeight: 850,
+  fontSize: 16,
   cursor: "pointer",
   border: TOKENS.softBorder,
-  background: "#fff",
+  background: "var(--surface)",
   color: TOKENS.text,
   textDecoration: "none",
   display: "inline-flex",
   justifyContent: "center",
   alignItems: "center",
-  gap: 8,
+  gap: 10,
   transition: "transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease",
 };
 
@@ -62,9 +63,10 @@ export const BTN_STYLES: Record<BtnVariant, React.CSSProperties> = {
 export const S: Record<string, React.CSSProperties> = {
   page: {
     padding: 18,
-    maxWidth: 1120,
+    width: "100%",
+    maxWidth: 1360,
     margin: "0 auto",
-    background: TOKENS.bg,
+    background: "transparent",
     minHeight: "100vh",
   },
 
@@ -77,17 +79,18 @@ export const S: Record<string, React.CSSProperties> = {
   },
   headerRight: { display: "flex", gap: 10, flexWrap: "wrap" },
 
-  h1: { fontSize: 26, fontWeight: 950, color: TOKENS.text, letterSpacing: -0.4 },
-  hSubtitle: { color: TOKENS.muted, marginTop: 6, fontSize: 13, lineHeight: 1.5 },
+  h1: { fontSize: 30, fontWeight: 950, color: TOKENS.text, letterSpacing: -0.4 },
+  hSubtitle: { color: TOKENS.muted, marginTop: 6, fontSize: 16, lineHeight: 1.5 },
 
   topBtn: {
     padding: "10px 12px",
     borderRadius: 12,
     border: TOKENS.softBorder,
-    background: "#fff",
+    background: "var(--surface)",
     textDecoration: "none",
     color: TOKENS.text,
     fontWeight: 850,
+    fontSize: 15,
     transition: "transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease",
   },
 
@@ -117,8 +120,8 @@ export const S: Record<string, React.CSSProperties> = {
   },
 
   cardHead: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
-  cardTitle: { fontSize: 14, fontWeight: 950, color: TOKENS.text, letterSpacing: -0.2 },
-  cardSubtitle: { marginTop: 4, fontSize: 12.5, color: TOKENS.muted, lineHeight: 1.4 },
+  cardTitle: { fontSize: 17, fontWeight: 950, color: TOKENS.text, letterSpacing: -0.2 },
+  cardSubtitle: { marginTop: 4, fontSize: 15, color: TOKENS.muted, lineHeight: 1.4 },
   cardBody: { marginTop: 12 },
 
   pillsRow: { display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" },
@@ -126,7 +129,7 @@ export const S: Record<string, React.CSSProperties> = {
   identityRow: { display: "flex", alignItems: "center", gap: 14 },
   identityMain: { flex: 1, minWidth: 0 },
 
-  name: { fontSize: 18, fontWeight: 950, color: TOKENS.text, letterSpacing: -0.25 },
+  name: { fontSize: 22, fontWeight: 950, color: TOKENS.text, letterSpacing: -0.25 },
   miniTagsRow: { display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 },
 
   miniTag: {
@@ -145,7 +148,7 @@ export const S: Record<string, React.CSSProperties> = {
     transition: "transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease",
   },
 
-  helperText: { color: TOKENS.muted, marginTop: 10, fontSize: 13, lineHeight: 1.65 },
+  helperText: { color: TOKENS.muted, marginTop: 10, fontSize: 15, lineHeight: 1.65 },
 
   fieldRow: {
     display: "flex",
@@ -155,11 +158,11 @@ export const S: Record<string, React.CSSProperties> = {
     borderTop: "1px solid rgba(148,163,184,0.16)",
   },
 
-  fieldLabel: { color: TOKENS.muted, fontSize: 12.5, fontWeight: 750 },
+  fieldLabel: { color: TOKENS.muted, fontSize: 14.5, fontWeight: 750 },
 
   fieldValue: {
     color: TOKENS.text,
-    fontSize: 13,
+    fontSize: 15.5,
     fontWeight: 850,
     textAlign: "right",
   },
@@ -167,12 +170,12 @@ export const S: Record<string, React.CSSProperties> = {
   mono: {
     fontFamily:
       "Open Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    fontSize: 12,
+    fontSize: 14,
     color: TOKENS.text,
     fontWeight: 750,
   },
 
-  list: { margin: 0, paddingLeft: 18, color: "#475569", fontSize: 13, lineHeight: 1.75 },
+  list: { margin: 0, paddingLeft: 18, color: TOKENS.muted, fontSize: 15, lineHeight: 1.75 },
 
   avatar: {
     width: 56,
@@ -199,11 +202,11 @@ export const S: Record<string, React.CSSProperties> = {
 
   actionsCol: { display: "grid", gap: 10 },
 
-  actionsHint: { marginTop: 10, color: TOKENS.muted, fontSize: 13, lineHeight: 1.65 },
+  actionsHint: { marginTop: 10, color: TOKENS.muted, fontSize: 15, lineHeight: 1.65 },
 
   muted: { color: TOKENS.muted },
 
-  mutedSmall: { color: TOKENS.muted, fontSize: 12, lineHeight: 1.55 },
+  mutedSmall: { color: TOKENS.muted, fontSize: 13.5, lineHeight: 1.55 },
 
   errorText: { color: "#ef4444", fontWeight: 850 },
 
@@ -213,7 +216,7 @@ export const S: Record<string, React.CSSProperties> = {
      ========================= */
 
   hero: {
-    background: "#fff",
+    background: "var(--surface)",
     border: TOKENS.border,
     borderRadius: TOKENS.radius,
     padding: 18,
@@ -228,7 +231,7 @@ export const S: Record<string, React.CSSProperties> = {
   },
 
   heroName: { fontSize: 34, fontWeight: 950, color: TOKENS.text, lineHeight: 1.1, letterSpacing: -0.6 },
-  heroRole: { fontSize: 15, fontWeight: 900, color: "#475569" },
+  heroRole: { fontSize: 18, fontWeight: 900, color: TOKENS.muted },
 
   metaRow: { display: "flex", flexWrap: "wrap", gap: 10, marginTop: 10 },
 
@@ -239,7 +242,7 @@ export const S: Record<string, React.CSSProperties> = {
     padding: "8px 10px",
     borderRadius: 12,
     border: TOKENS.softBorder,
-    background: "rgba(241,245,249,0.55)",
+    background: "var(--surface-2)",
     fontWeight: 900,
     color: TOKENS.text,
     cursor: "pointer",
@@ -259,8 +262,9 @@ export const S: Record<string, React.CSSProperties> = {
     padding: "10px 12px",
     borderRadius: 12,
     border: TOKENS.softBorder,
-    background: "#fff",
+    background: "var(--surface)",
     color: TOKENS.text,
+    fontSize: 15,
     fontWeight: 950,
     cursor: "pointer",
   },
@@ -271,6 +275,7 @@ export const S: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(22,163,74,0.35)",
     background: "rgba(22,163,74,0.08)",
     color: TOKENS.text,
+    fontSize: 15,
     fontWeight: 950,
     cursor: "pointer",
   },
@@ -283,7 +288,7 @@ export const S: Record<string, React.CSSProperties> = {
 
   stat: {
     border: TOKENS.border,
-    background: "#fff",
+    background: "var(--surface)",
     borderRadius: 16,
     padding: 14,
     display: "grid",
@@ -291,7 +296,7 @@ export const S: Record<string, React.CSSProperties> = {
     boxShadow: TOKENS.shadow2,
   },
 
-  statTitle: { fontSize: 12, fontWeight: 950, color: "#64748b" },
+  statTitle: { fontSize: 12, fontWeight: 950, color: TOKENS.muted },
   statValue: { fontSize: 16, fontWeight: 950, color: TOKENS.text },
 
   progressWrap: {
@@ -316,7 +321,7 @@ export const S: Record<string, React.CSSProperties> = {
 
   quickItem: {
     border: TOKENS.softBorder,
-    background: "rgba(241,245,249,0.55)",
+    background: "var(--surface-2)",
     borderRadius: 14,
     padding: 12,
     display: "grid",
@@ -329,7 +334,7 @@ export const S: Record<string, React.CSSProperties> = {
     width: 40,
     height: 40,
     borderRadius: 12,
-    background: "#fff",
+    background: "var(--surface)",
     border: TOKENS.softBorder,
     display: "grid",
     placeItems: "center",

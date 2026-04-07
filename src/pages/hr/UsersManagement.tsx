@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   createUser,
   deleteUser,
+  getCurrentUser,
   getUsers,
   updateUserRole,
   updateUser,
@@ -19,6 +20,17 @@ function normalizeRole(r: any): User["role"] {
   if (x === "HR") return "HR";
   if (x === "MANAGER") return "MANAGER";
   return "EMPLOYEE";
+}
+
+function getRoleFromSession(): User["role"] | null {
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.role ? normalizeRole(parsed.role) : null;
+  } catch {
+    return null;
+  }
 }
 
 function getUserDepartmentValue(u: any): string {
@@ -65,8 +77,8 @@ const BTN_BASE: React.CSSProperties = {
   fontSize: 16,
   cursor: "pointer",
   border: "1px solid var(--border)",
-  background: "#fff",
-  color: "var(--heading)",
+  background: "var(--surface)",
+  color: "var(--text)",
   textDecoration: "none",
   display: "inline-flex",
   justifyContent: "center",
@@ -90,16 +102,25 @@ const BTN_STYLES: Record<BtnVariant, React.CSSProperties> = {
   },
 };
 
-function Pill({ text, tone = "neutral" }: { text: string; tone?: Tone }) {
+function Pill({
+  text,
+  tone = "neutral",
+  strong = false,
+}: {
+  text: string;
+  tone?: Tone;
+  strong?: boolean;
+}) {
   const map = PILL_TONES[tone];
   return (
     <span
       style={{
-        padding: "8px 12px",
+        padding: strong ? "10px 14px" : "8px 12px",
         borderRadius: 999,
         fontWeight: 900,
-        fontSize: 14,
+        fontSize: strong ? 16 : 14,
         lineHeight: 1,
+        letterSpacing: strong ? 0.2 : 0,
         whiteSpace: "nowrap",
         background: map.bg,
         border: `1px solid ${map.bd}`,
@@ -145,7 +166,7 @@ function UserAvatar({ name, email, avatarUrl, size = 36 }: { name: string; email
           height: size,
           borderRadius: 999,
           objectFit: "cover",
-          border: "1px solid rgba(15,23,42,0.08)",
+          border: "1px solid var(--border)",
         }}
       />
     );
@@ -157,12 +178,12 @@ function UserAvatar({ name, email, avatarUrl, size = 36 }: { name: string; email
         height: size,
         borderRadius: 999,
         background: `hsl(${hue}, 65%, 92%)`,
-        color: "#0f172a",
+        color: "var(--text)",
         fontWeight: 900,
         fontSize: size * 0.4,
         display: "grid",
         placeItems: "center",
-        border: "1px solid rgba(15,23,42,0.08)",
+        border: "1px solid var(--border)",
       }}
     >
       {initials}
@@ -321,6 +342,7 @@ export default function UsersManagement() {
   const location = useLocation();
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
+  const [currentUserRole, setCurrentUserRole] = useState<User["role"] | null>(() => getRoleFromSession());
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -368,11 +390,17 @@ const [importOpen, setImportOpen] = useState(false);
     setErr("");
     setLoading(true);
     try {
-      const [data, depts] = await Promise.all([getUsers(), getAllDepartments()]);
+      const [data, depts, me] = await Promise.all([
+        getUsers(),
+        getAllDepartments(),
+        getCurrentUser().catch(() => null),
+      ]);
       const normalized = (data as any[]).map((u) => ({ ...u, role: normalizeRole(u.role) }));
       setUsers(normalized as User[]);
       setDepartments(depts || []);
+      setCurrentUserRole(me?.role ? normalizeRole(me.role) : getRoleFromSession());
     } catch (e: any) {
+      setCurrentUserRole(getRoleFromSession());
       setErr(e?.message || "Failed to load users");
     } finally {
       setLoading(false);
@@ -500,6 +528,13 @@ const [importOpen, setImportOpen] = useState(false);
 
   const onConfirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
+    const targetRole = normalizeRole(deleteTarget.role);
+    if (currentUserRole === "HR" && targetRole === "HR") {
+      setErr("Only super manager can delete HR accounts.");
+      setDeleteTarget(null);
+      return;
+    }
+
     const userId = deleteTarget._id;
 
     setDeleting(true);
@@ -519,7 +554,7 @@ const [importOpen, setImportOpen] = useState(false);
     } finally {
       setDeleting(false);
     }
-  }, [deleteTarget, selected?._id, form?._id]);
+  }, [deleteTarget, selected?._id, form?._id, currentUserRole]);
 
   const openView = useCallback((u: User) => setSelected(u), []);
   const closeView = useCallback(() => setSelected(null), []);
@@ -656,7 +691,7 @@ const [importOpen, setImportOpen] = useState(false);
 
         <div style={{ ...S.statCard, borderLeftColor: "rgba(100,116,139,0.4)" }}>
           <div style={S.statCardInner}>
-            <span style={{ ...S.statValue, color: "#64748b" }}>{users.length - onlineCount}</span>
+            <span style={{ ...S.statValue, color: "var(--muted)" }}>{users.length - onlineCount}</span>
             <span style={S.statLabel}>Offline</span>
           </div>
         </div>
@@ -747,12 +782,12 @@ const [importOpen, setImportOpen] = useState(false);
 
           <tbody>
             {paginatedUsers.map((u: any, i) => (
-              <tr key={u._id} style={{ ...S.tr, background: i % 2 === 1 ? "rgba(248,250,252,0.8)" : "#fff" }}>
+              <tr key={u._id} style={{ ...S.tr, background: i % 2 === 1 ? "var(--surface-2)" : "var(--surface)" }}>
                 <td style={S.td}>
                   <UserAvatar name={u.name} email={u.email} avatarUrl={u.avatarUrl} size={60} />
                 </td>
 
-                <td style={{ ...S.td, fontWeight: 800, color: "#0f172a" }}>{u.name}</td>
+                <td style={{ ...S.td, fontWeight: 800, color: "var(--text)" }}>{u.name}</td>
 
                 <td style={S.td}>
                   <select className="select" value={normalizeRole(u.role)} onChange={(e) => onChangeRole(u._id, normalizeRole(e.target.value))} style={S.roleSelect}>
@@ -775,7 +810,7 @@ const [importOpen, setImportOpen] = useState(false);
                 </td>
 
                 <td style={S.td}>
-                  <Pill text={u.en_ligne ? "Online" : "Offline"} tone={u.en_ligne ? "success" : "neutral"} />
+                  <Pill text={u.en_ligne ? "Online" : "Offline"} tone={u.en_ligne ? "success" : "neutral"} strong />
                 </td>
 
                 <td style={{ ...S.td, whiteSpace: "nowrap" }}>
@@ -786,9 +821,11 @@ const [importOpen, setImportOpen] = useState(false);
                     <button type="button" onClick={() => openEdit(u)} style={{ ...S.actionBtn, ...S.actionBtnPrimary }} title="Edit">
                       <IconPencil />
                     </button>
-                    <button type="button" onClick={() => setDeleteTarget(u)} style={{ ...S.actionBtn, ...S.actionBtnDanger }} title="Delete">
-                      <IconTrash />
-                    </button>
+                    {!(currentUserRole === "HR" && normalizeRole(u.role) === "HR") ? (
+                      <button type="button" onClick={() => setDeleteTarget(u)} style={{ ...S.actionBtn, ...S.actionBtnDanger }} title="Delete">
+                        <IconTrash />
+                      </button>
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -826,8 +863,8 @@ const [importOpen, setImportOpen] = useState(false);
         <div style={S.modalBackdrop} onClick={() => !deleting && setDeleteTarget(null)}>
           <div style={S.deleteModalCard} onClick={(e) => e.stopPropagation()}>
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>Delete user?</div>
-              <div style={{ marginTop: 6, color: "#64748b", fontSize: 14 }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: "var(--text)" }}>Delete user?</div>
+              <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 14 }}>
                 <strong>{deleteTarget.name}</strong> ({deleteTarget.email}) will be permanently deleted.
               </div>
             </div>
@@ -910,11 +947,11 @@ const [importOpen, setImportOpen] = useState(false);
 function UserDetailsGrid({ user }: { user: any }) {
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 0", borderBottom: "1px solid rgba(15,23,42,0.08)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
         <UserAvatar name={user.name} email={user.email} avatarUrl={user.avatarUrl} size={56} />
         <div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>{user.name}</div>
-          <div style={{ fontSize: 14, color: "#64748b" }}>{user.email}</div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: "var(--text)" }}>{user.name}</div>
+          <div style={{ fontSize: 14, color: "var(--muted)" }}>{user.email}</div>
           <Pill text={normalizeRole(user.role)} tone={["HR", "SUPER_MANAGER"].includes(normalizeRole(user.role)) ? "success" : "neutral"} />
         </div>
       </div>
@@ -1189,13 +1226,13 @@ const S: Record<string, React.CSSProperties> = {
   pageCard: {
     padding: 20,
     borderRadius: 16,
-    background: "#fff",
-    border: "1px solid rgba(15,23,42,0.08)",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     boxShadow: "0 4px 20px rgba(15,23,42,0.06)",
   },
   searchCard: {
-    background: "#fff",
-    border: "1px solid rgba(15,23,42,0.08)",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: 12,
     padding: 16,
     marginTop: 12,
@@ -1212,8 +1249,8 @@ const S: Record<string, React.CSSProperties> = {
     minWidth: 220,
     padding: "18px 20px",
     borderRadius: 16,
-    background: "#fff",
-    border: "1px solid rgba(15,23,42,0.08)",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderLeft: "4px solid rgba(15,23,42,0.12)",
   },
   statCardInner: {
@@ -1222,11 +1259,11 @@ const S: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     gap: 16,
   },
-  statValue: { fontSize: 34, fontWeight: 900, color: "#0f172a", lineHeight: 1 },
-  statLabel: { fontSize: 16, fontWeight: 800, color: "#64748b", whiteSpace: "nowrap" },
+  statValue: { fontSize: 34, fontWeight: 900, color: "var(--text)", lineHeight: 1 },
+  statLabel: { fontSize: 16, fontWeight: 800, color: "var(--muted)", whiteSpace: "nowrap" },
 
-  pageTitle: { fontSize: 40, fontWeight: 900, color: "#0f172a", lineHeight: 1.1 },
-  pageSubtitle: { fontSize: 21, fontWeight: 700, color: "#64748b", marginTop: 8, lineHeight: 1.3 },
+  pageTitle: { fontSize: 40, fontWeight: 900, color: "var(--text)", lineHeight: 1.1 },
+  pageSubtitle: { fontSize: 21, fontWeight: 700, color: "var(--muted)", marginTop: 8, lineHeight: 1.3 },
 
   headerTop: {
     marginBottom: 16,
@@ -1243,15 +1280,15 @@ const S: Record<string, React.CSSProperties> = {
     flex: "0 0 auto",
   },
   headerActions: { display: "flex", alignItems: "center", gap: 10, flex: "0 0 auto" },
-  simpleBtn: { borderRadius: 12, fontWeight: 800, fontSize: 16, padding: "12px 16px", border: "1px solid rgba(15,23,42,0.12)", background: "#fff", color: "#0f172a" },
-  addBtn: { borderRadius: 12, fontWeight: 800, fontSize: 16, padding: "12px 16px", background: "rgba(31,122,90,0.10)", border: "1px solid rgba(31,122,90,0.20)", color: "#145a41" },
+  simpleBtn: { borderRadius: 12, fontWeight: 800, fontSize: 16, padding: "12px 16px", border: "1px solid var(--input-border)", background: "var(--surface)", color: "var(--text)" },
+  addBtn: { borderRadius: 12, fontWeight: 800, fontSize: 16, padding: "12px 16px", background: "rgba(31,122,90,0.10)", border: "1px solid rgba(31,122,90,0.20)", color: "#19dd98" },
   searchWrap: {
     position: "relative",
     display: "inline-flex",
     alignItems: "center",
   },
   searchIcon: { position: "absolute", left: 12, fontSize: 16, opacity: 0.6 },
-  searchInput: { minWidth: 320, fontSize: 16, paddingLeft: 40, borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)" },
+  searchInput: { minWidth: 320, fontSize: 16, paddingLeft: 40, borderRadius: 12, border: "1px solid var(--input-border)" },
   refreshBtn: { borderRadius: 12, fontWeight: 800 },
 
   errorBox: {
@@ -1262,7 +1299,7 @@ const S: Record<string, React.CSSProperties> = {
     background: "rgba(239,68,68,0.06)",
   },
 
-  tableWrap: { overflowX: "auto", marginTop: 0, borderRadius: 12, border: "1px solid rgba(15,23,42,0.08)", background: "#fff", overflow: "hidden" },
+  tableWrap: { overflowX: "auto", marginTop: 0, borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", overflow: "hidden" },
   paginationRow: {
     display: "flex",
     justifyContent: "space-between",
@@ -1273,7 +1310,7 @@ const S: Record<string, React.CSSProperties> = {
     flexWrap: "wrap",
   },
   paginationInfo: {
-    color: "#64748b",
+    color: "var(--muted)",
     fontSize: 15,
     fontWeight: 700,
   },
@@ -1285,9 +1322,9 @@ const S: Record<string, React.CSSProperties> = {
   pageBadge: {
     padding: "8px 12px",
     borderRadius: 10,
-    border: "1px solid rgba(15,23,42,0.1)",
-    background: "#fff",
-    color: "#0f172a",
+    border: "1px solid var(--border)",
+    background: "var(--surface)",
+    color: "var(--text)",
     fontWeight: 800,
     fontSize: 15,
   },
@@ -1297,15 +1334,15 @@ const S: Record<string, React.CSSProperties> = {
     textAlign: "left",
     fontSize: 18,
     fontWeight: 900,
-    color: "#64748b",
+    color: "var(--muted)",
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    background: "rgba(248,250,252,0.9)",
-    borderBottom: "1px solid rgba(15,23,42,0.08)",
+    background: "var(--surface-2)",
+    borderBottom: "1px solid var(--border)",
   },
-  tr: { borderBottom: "1px solid rgba(15,23,42,0.06)" },
+  tr: { borderBottom: "1px solid var(--border)" },
   td: { padding: "14px 6px", fontSize: 18, fontWeight: 600 },
-  roleSelect: { padding: "10px 10px", borderRadius: 10, border: "1px solid rgba(15,23,42,0.12)", fontWeight: 800, fontSize: 16 },
+  roleSelect: { padding: "10px 10px", borderRadius: 10, border: "1px solid var(--input-border)", fontWeight: 800, fontSize: 16 },
   actionsGroup: {
     display: "inline-flex",
     flexWrap: "nowrap",
@@ -1313,8 +1350,8 @@ const S: Record<string, React.CSSProperties> = {
     gap: 0,
     borderRadius: 12,
     overflow: "hidden",
-    border: "1px solid rgba(15,23,42,0.1)",
-    background: "rgba(248,250,252,0.6)",
+    border: "1px solid var(--border)",
+    background: "var(--surface-2)",
   },
   actionBtn: {
     width: 38,
@@ -1322,18 +1359,18 @@ const S: Record<string, React.CSSProperties> = {
     border: "none",
     borderRight: "1px solid rgba(15,23,42,0.08)",
     background: "transparent",
-    color: "#475569",
+    color: "var(--muted)",
     cursor: "pointer",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
   },
-  actionBtnPrimary: { color: "#166534", borderRight: "1px solid rgba(15,23,42,0.08)" },
+  actionBtnPrimary: { color: "#166534", borderRight: "1px solid var(--border)" },
   actionBtnDanger: { color: "#b91c1c", borderRight: "none" },
-  emptyCell: { padding: 32, textAlign: "center", color: "#64748b", fontWeight: 800, fontSize: 18 },
+  emptyCell: { padding: 32, textAlign: "center", color: "var(--muted)", fontWeight: 800, fontSize: 18 },
 
   deleteModalCard: {
-    background: "#fff",
+    background: "var(--surface)",
     borderRadius: 16,
     padding: 24,
     maxWidth: 400,
@@ -1355,7 +1392,7 @@ const S: Record<string, React.CSSProperties> = {
     borderRadius: 16,
     padding: 20,
     boxShadow: "0 24px 64px rgba(0,0,0,0.2)",
-    background: "#fff",
+    background: "var(--surface)",
   },
   modalHead: {
     display: "flex",
@@ -1363,8 +1400,8 @@ const S: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     gap: 12,
   },
-  modalTitle: { fontSize: 26, fontWeight: 900, color: "#0f172a" },
+  modalTitle: { fontSize: 26, fontWeight: 900, color: "var(--text)" },
 
-  blockTitle: { fontWeight: 900, fontSize: 18, marginBottom: 10, color: "#0f172a" },
-  blockValue: { fontWeight: 800, fontSize: 16, marginBottom: 10, color: "#334155" },
+  blockTitle: { fontWeight: 900, fontSize: 18, marginBottom: 10, color: "var(--text)" },
+  blockValue: { fontWeight: 800, fontSize: 16, marginBottom: 10, color: "var(--text)" },
 };

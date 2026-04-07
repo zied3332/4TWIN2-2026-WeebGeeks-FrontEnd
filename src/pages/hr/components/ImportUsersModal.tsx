@@ -35,9 +35,9 @@ const P = {
     alignItems: "center",
     flexWrap: "wrap" as const,
     padding: "12px 14px",
-    border: "1px solid rgba(148,163,184,0.22)",
+    border: "1px solid var(--border)",
     borderRadius: 12,
-    background: "rgba(248,250,252,0.85)",
+    background: "var(--surface-2)",
   },
 
   fileBtn: {
@@ -46,21 +46,21 @@ const P = {
     gap: 8,
     padding: "8px 12px",
     borderRadius: 10,
-    border: "1px solid rgba(148,163,184,0.25)",
-    background: "#fff",
-    color: "#0f172a",
+    border: "1px solid var(--input-border)",
+    background: "var(--surface)",
+    color: "var(--text)",
     fontWeight: 900,
     cursor: "pointer",
     userSelect: "none" as const,
   },
   fileBtnDisabled: { opacity: 0.6, cursor: "not-allowed" as const },
-  fileHint: { fontSize: 12, color: "#64748b" },
+  fileHint: { fontSize: 12, color: "var(--muted)" },
 
   fileBadge: {
     fontWeight: 800,
-    color: "#0f172a",
-    background: "#fff",
-    border: "1px solid rgba(148,163,184,0.22)",
+    color: "var(--text)",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: 999,
     padding: "6px 10px",
   },
@@ -69,16 +69,16 @@ const P = {
     height: 36,
     padding: "0 10px",
     borderRadius: 10,
-    border: "1px solid rgba(148,163,184,0.25)",
-    background: "#fff",
-    color: "#0f172a",
+    border: "1px solid var(--input-border)",
+    background: "var(--surface)",
+    color: "var(--text)",
     fontWeight: 800,
     outline: "none",
   },
 
   meta: {
     fontSize: 13,
-    color: "#475569",
+    color: "var(--muted)",
     display: "flex",
     gap: 10,
     alignItems: "center",
@@ -108,8 +108,8 @@ const P = {
     padding: "7px 10px",
     borderRadius: 999,
     border: active ? "1px solid rgba(15,23,42,0.25)" : "1px solid rgba(148,163,184,0.20)",
-    background: active ? "rgba(15,23,42,0.06)" : "#fff",
-    color: "#0f172a",
+    background: active ? "var(--surface-3)" : "var(--surface)",
+    color: "var(--text)",
     fontWeight: 900,
     fontSize: 12,
     cursor: "pointer",
@@ -117,10 +117,10 @@ const P = {
   }),
 
   tableShell: {
-    border: "1px solid rgba(148,163,184,0.22)",
+    border: "1px solid var(--border)",
     borderRadius: 14,
     overflow: "hidden",
-    background: "#fff",
+    background: "var(--surface)",
   },
   tableWrap: { maxHeight: 420, overflow: "auto" as const },
 
@@ -131,22 +131,22 @@ const P = {
     textAlign: "left" as const,
     padding: "10px 12px",
     fontSize: 12,
-    color: "#475569",
-    background: "rgba(248,250,252,0.98)",
-    borderBottom: "1px solid rgba(148,163,184,0.18)",
+    color: "var(--muted)",
+    background: "var(--surface-2)",
+    borderBottom: "1px solid var(--border)",
     whiteSpace: "nowrap" as const,
   },
 
   td: {
     padding: "10px 12px",
     fontSize: 13,
-    borderTop: "1px solid rgba(148,163,184,0.14)",
+    borderTop: "1px solid var(--border)",
     verticalAlign: "top" as const,
     whiteSpace: "nowrap" as const,
   },
 
-  nameCell: { fontWeight: 900, color: "#0f172a", whiteSpace: "normal" as const },
-  emailCell: { color: "#64748b", fontSize: 13 },
+  nameCell: { fontWeight: 900, color: "var(--text)", whiteSpace: "normal" as const },
+  emailCell: { color: "var(--muted)", fontSize: 13 },
 
   errorsOk: { color: "#16a34a", fontWeight: 900, fontSize: 12 },
   errorsBad: { color: "#b91c1c", fontWeight: 900, fontSize: 12, whiteSpace: "normal" as const, minWidth: 320 },
@@ -154,17 +154,17 @@ const P = {
   footerNote: {
     padding: "10px 12px",
     fontSize: 12,
-    color: "#64748b",
-    background: "rgba(248,250,252,0.9)",
-    borderTop: "1px solid rgba(148,163,184,0.16)",
+    color: "var(--muted)",
+    background: "var(--surface-2)",
+    borderTop: "1px solid var(--border)",
   },
 
   smallBtn: {
     padding: "8px 10px",
     borderRadius: 10,
-    border: "1px solid rgba(148,163,184,0.25)",
-    background: "#fff",
-    color: "#0f172a",
+    border: "1px solid var(--input-border)",
+    background: "var(--surface)",
+    color: "var(--text)",
     fontWeight: 900,
     cursor: "pointer",
   },
@@ -174,11 +174,11 @@ const P = {
     width: "100%",
     height: 34,
     borderRadius: 10,
-    border: "1px solid rgba(148,163,184,0.25)",
+    border: "1px solid var(--input-border)",
     padding: "0 10px",
     outline: "none",
     fontSize: 13,
-    background: "#fff",
+    background: "var(--surface)",
   },
   cellInputBad: {
     border: "1px solid rgba(239,68,68,0.45)",
@@ -188,11 +188,11 @@ const P = {
     width: "100%",
     height: 34,
     borderRadius: 10,
-    border: "1px solid rgba(148,163,184,0.25)",
+    border: "1px solid var(--input-border)",
     padding: "0 10px",
     outline: "none",
     fontSize: 13,
-    background: "#fff",
+    background: "var(--surface)",
   },
 };
 
@@ -477,7 +477,7 @@ export function ImportUsersModal({ open, onClose, onImported }: Props) {
         )}
 
         <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ color: "#64748b", fontSize: 13 }}>
+          <div style={{ color: "var(--muted)", fontSize: 13 }}>
             Recommended columns: <b>name</b>, <b>email</b>, <b>matricule</b>, <b>telephone</b>, <b>date_embauche</b>, <b>role</b>
           </div>
 
@@ -543,7 +543,7 @@ export function ImportUsersModal({ open, onClose, onImported }: Props) {
 
           {rows.length > 0 && (
             <div style={P.filterRow}>
-              <span style={{ fontSize: 12, color: "#64748b", fontWeight: 900 }}>Afficher:</span>
+              <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 900 }}>Afficher:</span>
               <button type="button" style={P.filterBtn(filter === "ALL")} onClick={() => setFilter("ALL")}>
                 Tous ({rows.length})
               </button>
@@ -553,7 +553,7 @@ export function ImportUsersModal({ open, onClose, onImported }: Props) {
               <button type="button" style={P.filterBtn(filter === "INVALID")} onClick={() => setFilter("INVALID")}>
                 Invalides ({invalidCount})
               </button>
-              <span style={{ fontSize: 12, color: "#64748b" }}>
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>
                 (Invalid rows are editable)
               </span>
             </div>
@@ -585,7 +585,7 @@ export function ImportUsersModal({ open, onClose, onImported }: Props) {
                         <tr
                           key={`${r.__row}-${idx}`}
                           id={`preview-row-${r.__row}`}
-                          style={{ background: ok ? "#fff" : "rgba(254,226,226,0.45)" }}
+                          style={{ background: ok ? "var(--surface)" : "rgba(254,226,226,0.45)" }}
                         >
                           <td style={{ ...P.td, fontWeight: 900 }}>
                             {r.__row} {ok ? "✅" : "❌"}
@@ -689,7 +689,7 @@ export function ImportUsersModal({ open, onClose, onImported }: Props) {
 
                     {!busy && displayRows.length === 0 && (
                       <tr>
-                        <td colSpan={8} style={{ ...P.td, color: "#64748b" }}>
+                        <td colSpan={8} style={{ ...P.td, color: "var(--muted)" }}>
                           No results for this filter.
                         </td>
                       </tr>
@@ -703,9 +703,9 @@ export function ImportUsersModal({ open, onClose, onImported }: Props) {
           )}
 
           {result && (
-            <div style={{ border: "1px solid rgba(148,163,184,0.22)", borderRadius: 12, padding: 12 }}>
-              <div style={{ fontWeight: 900, color: "#0f172a", marginBottom: 6 }}>Result</div>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", color: "#334155" }}>
+            <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 12 }}>
+              <div style={{ fontWeight: 900, color: "var(--text)", marginBottom: 6 }}>Result</div>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", color: "var(--text)" }}>
                 <span>
                   <b>Created:</b> {result.created ?? 0}
                 </span>

@@ -1,4 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { getUsers } from "../../services/users.service";
+import { getAllEmployees } from "../../services/employee.service";
+import { getAllDepartments } from "../../services/departments.service";
+import { getAllSkills } from "../../services/skills.service";
+import { listActivities, type ActivityRecord } from "../../services/activities.service";
 
 type FilterTab = "All" | "Engineering" | "IT Support" | "Marketing";
 
@@ -26,15 +31,93 @@ type DepartmentPoint = {
 
 export default function HrDashboard() {
   const [tab, setTab] = useState<FilterTab>("All");
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [activityRecords, setActivityRecords] = useState<ActivityRecord[]>([]);
+  const [calendarDate, setCalendarDate] = useState(() => new Date());
+  const [totals, setTotals] = useState({
+    users: 0,
+    employees: 0,
+    departments: 0,
+    skills: 0,
+    activities: 0,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        setStatsLoading(true);
+
+        const [users, employees, departments, skills, activities] = await Promise.all([
+          getUsers(),
+          getAllEmployees(),
+          getAllDepartments(),
+          getAllSkills(),
+          listActivities(),
+        ]);
+
+        if (cancelled) return;
+
+        setTotals({
+          users: Array.isArray(users) ? users.length : 0,
+          employees: Array.isArray(employees) ? employees.length : 0,
+          departments: Array.isArray(departments) ? departments.length : 0,
+          skills: Array.isArray(skills) ? skills.length : 0,
+          activities: Array.isArray(activities) ? activities.length : 0,
+        });
+        setActivityRecords(Array.isArray(activities) ? activities : []);
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load dashboard card stats", error);
+          setTotals({ users: 0, employees: 0, departments: 0, skills: 0, activities: 0 });
+          setActivityRecords([]);
+        }
+      } finally {
+        if (!cancelled) setStatsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const stats = useMemo(
-    () => [
-      { title: "All Leaves", value: "14", unit: "Days", percent: 82 },
-      { title: "Annual Leaves", value: "10", unit: "Days", percent: 68 },
-      { title: "Casual Leaves", value: "8", unit: "Hours", percent: 56 },
-      { title: "Sick Leaves", value: "3", unit: "Days", percent: 34 },
-    ],
-    []
+    () => {
+      const toPct = (numerator: number, denominator: number) => {
+        if (!denominator) return 0;
+        return Math.max(0, Math.min(100, Math.round((numerator / denominator) * 100)));
+      };
+
+      return [
+        {
+          title: "Total Users",
+          value: String(totals.users),
+          unit: `${totals.employees} Employees`,
+          percent: toPct(totals.employees, totals.users),
+        },
+        {
+          title: "Departments",
+          value: String(totals.departments),
+          unit: `${totals.users} Users`,
+          percent: toPct(totals.departments, totals.users || 1),
+        },
+        {
+          title: "Skills",
+          value: String(totals.skills),
+          unit: `${totals.activities} Activities`,
+          percent: toPct(totals.skills, totals.activities || 1),
+        },
+        {
+          title: "Activities",
+          value: String(totals.activities),
+          unit: `${totals.departments} Departments`,
+          percent: toPct(totals.activities, totals.skills || 1),
+        },
+      ];
+    },
+    [totals]
   );
 
   const skillGaps: GapRow[] = useMemo(
@@ -114,10 +197,39 @@ export default function HrDashboard() {
     []
   );
 
-  const monthGraph = useMemo(
-    () => [66, 69, 71, 68, 66, 63, 61, 59, 62, 70, 67, 72],
-    []
-  );
+  const monthGraph = useMemo(() => {
+    const now = new Date();
+
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
+      const label = d.toLocaleString("en", { month: "short" });
+
+      const value = activityRecords.filter((a) => {
+        const dt = new Date(a.startDate || a.createdAt || "");
+        return (
+          !Number.isNaN(dt.getTime()) &&
+          dt.getFullYear() === d.getFullYear() &&
+          dt.getMonth() === d.getMonth()
+        );
+      }).length;
+
+      return { label, value };
+    });
+  }, [activityRecords]);
+
+  const performanceOverview = useMemo(() => {
+    const total = activityRecords.length;
+    const completed = activityRecords.filter((a) => a.status === "COMPLETED").length;
+    const completionRate = total > 0 ? (completed / total) * 100 : 0;
+
+    return {
+      completionRate,
+      subtitle:
+        total > 0
+          ? `${completed} completed of ${total} total activities`
+          : "No activities available yet",
+    };
+  }, [activityRecords]);
 
   const departmentTrend: DepartmentPoint[] = useMemo(
     () => [
@@ -131,7 +243,7 @@ export default function HrDashboard() {
     []
   );
 
-  const maxMonthValue = Math.max(...monthGraph);
+  const maxMonthValue = Math.max(...monthGraph.map((m) => m.value), 1);
 
   const getGapBadge = (gap: GapRow["gap"]) => {
     if (gap === "High") {
@@ -171,36 +283,89 @@ export default function HrDashboard() {
       .join(" ");
   };
 
-  const calendarDays = [
-    null,
-    1, 2, 3, 4, 5, 6,
-    7, 8, 9, 10, 11, 12, 13,
-    14, 15, 16, 17, 18, 19, 20,
-    21, 22, 23, 24, 25, 26, 27,
-    28, 29, 30, null, null, null, null,
-  ];
+  const calendarMonthLabel = useMemo(
+    () => calendarDate.toLocaleString("en", { month: "long", year: "numeric" }),
+    [calendarDate]
+  );
 
-  const activeDays = [4, 11, 14, 19, 21, 26, 27, 28];
+  const calendarDays = useMemo(() => {
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const grid: Array<number | null> = [
+      ...Array.from({ length: firstDay }, () => null),
+      ...Array.from({ length: daysInMonth }, (_, idx) => idx + 1),
+    ];
+
+    while (grid.length % 7 !== 0) {
+      grid.push(null);
+    }
+
+    return grid;
+  }, [calendarDate]);
+
+  const calendarMarkers = useMemo(() => {
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    const startDays = new Set<number>();
+    const endDays = new Set<number>();
+
+    activityRecords.forEach((activity) => {
+      const start = new Date(activity.startDate || activity.createdAt || "");
+      const end = new Date(activity.endDate || activity.startDate || activity.createdAt || "");
+
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return;
+
+      if (start.getFullYear() === year && start.getMonth() === month) {
+        startDays.add(start.getDate());
+      }
+
+      if (end.getFullYear() === year && end.getMonth() === month) {
+        endDays.add(end.getDate());
+      }
+    });
+
+    return { startDays, endDays };
+  }, [activityRecords, calendarDate]);
+
+  const monthlyHighlights = useMemo(() => {
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+
+    return activityRecords
+      .filter((activity) => {
+        const dt = new Date(activity.startDate || activity.createdAt || "");
+        return !Number.isNaN(dt.getTime()) && dt.getFullYear() === year && dt.getMonth() === month;
+      })
+      .sort((a, b) => {
+        const ta = new Date(a.startDate || a.createdAt || 0).getTime();
+        const tb = new Date(b.startDate || b.createdAt || 0).getTime();
+        return ta - tb;
+      })
+      .slice(0, 2);
+  }, [activityRecords, calendarDate]);
 
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "#f4f7f5",
+        background: "var(--bg)",
         padding: "24px",
         fontFamily:
           '"Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        color: "#20312d",
+        color: "var(--text)",
       }}
     >
       <div style={{ maxWidth: "1480px", margin: "0 auto", display: "grid", gap: "20px" }}>
         {/* PAGE HEADER */}
         <section
           style={{
-            background: "#ffffff",
+            background: "var(--card)",
             borderRadius: "26px",
             padding: "24px 28px",
-            border: "1px solid #edf2ef",
+            border: "1px solid var(--border)",
             boxShadow: "0 10px 30px rgba(21, 61, 46, 0.05)",
             display: "flex",
             justifyContent: "space-between",
@@ -214,7 +379,7 @@ export default function HrDashboard() {
               style={{
                 fontSize: "13px",
                 fontWeight: 700,
-                color: "#6f8780",
+                color: "var(--muted)",
                 textTransform: "uppercase",
                 letterSpacing: "0.08em",
                 marginBottom: "8px",
@@ -228,7 +393,7 @@ export default function HrDashboard() {
                 fontSize: "32px",
                 lineHeight: 1.15,
                 fontWeight: 800,
-                color: "#18332b",
+                color: "var(--text)",
               }}
             >
               People Operations Overview
@@ -237,7 +402,7 @@ export default function HrDashboard() {
               style={{
                 marginTop: "8px",
                 fontSize: "14px",
-                color: "#789089",
+                color: "var(--muted)",
               }}
             >
               Workforce performance, leave tracking, department trends, and skill-gap planning
@@ -256,10 +421,10 @@ export default function HrDashboard() {
               style={{
                 padding: "10px 14px",
                 borderRadius: "14px",
-                background: "#f8fbf9",
-                border: "1px solid #e7efea",
+                background: "var(--surface-2)",
+                border: "1px solid var(--border)",
                 fontSize: "13px",
-                color: "#5e756e",
+                color: "var(--muted)",
                 fontWeight: 700,
               }}
             >
@@ -294,10 +459,10 @@ export default function HrDashboard() {
             <div
               key={item.title}
               style={{
-                background: "#ffffff",
+                background: "var(--surface)",
                 borderRadius: "24px",
                 padding: "22px",
-                border: "1px solid #edf2ef",
+                border: "1px solid color-mix(in srgb, var(--border) 86%, transparent)",
                 boxShadow: "0 8px 28px rgba(21, 61, 46, 0.05)",
                 display: "flex",
                 alignItems: "center",
@@ -307,11 +472,15 @@ export default function HrDashboard() {
               }}
             >
               <div>
-                <div style={{ fontSize: "15px", color: "#738a84", marginBottom: "10px" }}>
+                <div style={{ fontSize: "15px", color: "var(--text)", marginBottom: "10px", fontWeight: 700 }}>
                   {item.title}
                 </div>
-                <div style={{ fontSize: "42px", fontWeight: 800, lineHeight: 1 }}>{item.value}</div>
-                <div style={{ fontSize: "15px", color: "#8ca19b", marginTop: "8px" }}>{item.unit}</div>
+                <div style={{ fontSize: "42px", fontWeight: 800, lineHeight: 1, color: "var(--text)" }}>
+                  {statsLoading ? "..." : item.value}
+                </div>
+                <div style={{ fontSize: "15px", color: "var(--muted)", marginTop: "8px", fontWeight: 700 }}>
+                  {statsLoading ? "Loading" : item.unit}
+                </div>
               </div>
 
               <div
@@ -319,7 +488,7 @@ export default function HrDashboard() {
                   width: "84px",
                   height: "84px",
                   borderRadius: "50%",
-                  background: `conic-gradient(#1ea672 ${item.percent}%, #eaf2ee ${item.percent}% 100%)`,
+                  background: `conic-gradient(#1ea672 ${item.percent}%, var(--surface-3) ${item.percent}% 100%)`,
                   display: "grid",
                   placeItems: "center",
                   flexShrink: 0,
@@ -330,15 +499,15 @@ export default function HrDashboard() {
                     width: "64px",
                     height: "64px",
                     borderRadius: "50%",
-                    background: "#ffffff",
+                    background: "var(--card)",
                     display: "grid",
                     placeItems: "center",
                     fontWeight: 800,
-                    color: "#2f5047",
+                    color: "var(--text)",
                     fontSize: "15px",
                   }}
                 >
-                  {item.percent}%
+                  {statsLoading ? "..." : `${item.percent}%`}
                 </div>
               </div>
             </div>
@@ -359,10 +528,10 @@ export default function HrDashboard() {
             {/* PERFORMANCE */}
             <section
               style={{
-                background: "#ffffff",
+                background: "var(--card)",
                 borderRadius: "26px",
                 padding: "24px",
-                border: "1px solid #edf2ef",
+                border: "1px solid var(--border)",
                 boxShadow: "0 8px 30px rgba(21, 61, 46, 0.05)",
               }}
             >
@@ -377,26 +546,28 @@ export default function HrDashboard() {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: "16px", fontWeight: 800 }}>Performance Overview</div>
-                  <div style={{ fontSize: "38px", fontWeight: 800, marginTop: "8px" }}>86.75%</div>
+                  <div style={{ fontSize: "16px", fontWeight: 800 }}>Activity Completion Rate</div>
+                  <div style={{ fontSize: "38px", fontWeight: 800, marginTop: "8px" }}>
+                    {statsLoading ? "..." : `${performanceOverview.completionRate.toFixed(1)}%`}
+                  </div>
                   <div style={{ color: "#22a16d", fontSize: "14px", fontWeight: 700 }}>
-                    +12.05% improved compared to last year
+                    {statsLoading ? "Loading activity metrics..." : performanceOverview.subtitle}
                   </div>
                 </div>
 
                 <button
                   type="button"
                   style={{
-                    border: "1px solid #e8efeb",
-                    background: "#f8fbf9",
+                    border: "1px solid var(--border)",
+                    background: "var(--surface-2)",
                     borderRadius: "12px",
                     padding: "10px 14px",
-                    color: "#58716a",
+                    color: "var(--muted)",
                     fontWeight: 700,
                     cursor: "pointer",
                   }}
                 >
-                  Last Year ▾
+                  Last 12 Months
                 </button>
               </div>
 
@@ -406,16 +577,15 @@ export default function HrDashboard() {
                   display: "flex",
                   alignItems: "flex-end",
                   gap: "12px",
-                  borderBottom: "1px solid #eef3f0",
+                  borderBottom: "1px solid var(--border)",
                   paddingBottom: "18px",
                 }}
               >
-                {monthGraph.map((value, index) => {
-                  const height = (value / maxMonthValue) * 190;
-                  const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                {monthGraph.map((point, index) => {
+                  const height = (point.value / maxMonthValue) * 190;
                   return (
                     <div
-                      key={`${monthLabels[index]}-${value}`}
+                      key={`${point.label}-${index}`}
                       style={{
                         flex: 1,
                         display: "flex",
@@ -429,16 +599,16 @@ export default function HrDashboard() {
                         style={{
                           width: "100%",
                           maxWidth: "42px",
-                          height: `${height}px`,
+                          height: `${Math.max(height, 12)}px`,
                           borderRadius: "14px 14px 10px 10px",
                           background:
-                            index === 9
+                            index === monthGraph.length - 1
                               ? "linear-gradient(180deg, #19aa73 0%, #0f8558 100%)"
                               : "linear-gradient(180deg, #d4efe2 0%, #93d6b4 100%)",
                         }}
                       />
-                      <span style={{ fontSize: "12px", color: "#7a918a", fontWeight: 600 }}>
-                        {monthLabels[index]}
+                      <span style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>
+                        {point.label}
                       </span>
                     </div>
                   );
@@ -449,10 +619,10 @@ export default function HrDashboard() {
             {/* NEW DEPARTMENT GRAPH */}
             <section
               style={{
-                background: "#ffffff",
+                background: "var(--card)",
                 borderRadius: "26px",
                 padding: "24px",
-                border: "1px solid #edf2ef",
+                border: "1px solid var(--border)",
                 boxShadow: "0 8px 30px rgba(21, 61, 46, 0.05)",
               }}
             >
@@ -468,7 +638,7 @@ export default function HrDashboard() {
               >
                 <div>
                   <div style={{ fontWeight: 800, fontSize: "16px" }}>Department Activity Trend</div>
-                  <div style={{ color: "#7b928c", fontSize: "13px", marginTop: "4px" }}>
+                  <div style={{ color: "var(--muted)", fontSize: "13px", marginTop: "4px" }}>
                     Dummy data showing monthly engagement across main departments
                   </div>
                 </div>
@@ -482,7 +652,7 @@ export default function HrDashboard() {
                   ].map(([label, color]) => (
                     <div
                       key={label}
-                      style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#5f756f" }}
+                      style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--muted)" }}
                     >
                       <span
                         style={{
@@ -501,8 +671,8 @@ export default function HrDashboard() {
 
               <div
                 style={{
-                  background: "#f8fbf9",
-                  border: "1px solid #edf2ef",
+                  background: "var(--surface-2)",
+                  border: "1px solid var(--border)",
                   borderRadius: "22px",
                   padding: "18px",
                 }}
@@ -563,7 +733,7 @@ export default function HrDashboard() {
                         x={x}
                         y="208"
                         textAnchor="middle"
-                        fill="#7b928c"
+                        fill="var(--muted)"
                         fontSize="12"
                         fontWeight="600"
                       >
@@ -585,10 +755,10 @@ export default function HrDashboard() {
             >
               <section
                 style={{
-                  background: "#ffffff",
+                  background: "var(--card)",
                   borderRadius: "26px",
                   padding: "24px",
-                  border: "1px solid #edf2ef",
+                  border: "1px solid var(--border)",
                   boxShadow: "0 8px 30px rgba(21, 61, 46, 0.05)",
                   minHeight: "360px",
                 }}
@@ -605,11 +775,11 @@ export default function HrDashboard() {
                   <button
                     type="button"
                     style={{
-                      border: "1px solid #e8efeb",
-                      background: "#f8fbf9",
+                      border: "1px solid var(--border)",
+                      background: "var(--surface-2)",
                       borderRadius: "12px",
                       padding: "8px 12px",
-                      color: "#58716a",
+                      color: "var(--muted)",
                       fontWeight: 700,
                       cursor: "pointer",
                       fontSize: "12px",
@@ -661,10 +831,10 @@ export default function HrDashboard() {
 
               <section
                 style={{
-                  background: "#ffffff",
+                  background: "var(--card)",
                   borderRadius: "26px",
                   padding: "24px",
-                  border: "1px solid #edf2ef",
+                  border: "1px solid var(--border)",
                   boxShadow: "0 8px 30px rgba(21, 61, 46, 0.05)",
                   minHeight: "360px",
                 }}
@@ -680,7 +850,7 @@ export default function HrDashboard() {
                         alignItems: "center",
                         gap: "14px",
                         padding: "14px",
-                        background: "#f8fbf9",
+                        background: "var(--surface-2)",
                         borderRadius: "18px",
                         border: "1px solid #edf3ef",
                       }}
@@ -714,7 +884,7 @@ export default function HrDashboard() {
                         >
                           {doc.title}
                         </div>
-                        <div style={{ fontSize: "13px", color: "#7c928b", marginTop: "4px" }}>
+                        <div style={{ fontSize: "13px", color: "var(--muted)", marginTop: "4px" }}>
                           {doc.type} · {doc.size}
                         </div>
                       </div>
@@ -727,10 +897,10 @@ export default function HrDashboard() {
             {/* TABLE */}
             <section
               style={{
-                background: "#ffffff",
+                background: "var(--card)",
                 borderRadius: "26px",
                 padding: "24px",
-                border: "1px solid #edf2ef",
+                border: "1px solid var(--border)",
                 boxShadow: "0 8px 30px rgba(21, 61, 46, 0.05)",
               }}
             >
@@ -746,7 +916,7 @@ export default function HrDashboard() {
               >
                 <div>
                   <div style={{ fontWeight: 800, fontSize: "17px" }}>Critical Skills Gap</div>
-                  <div style={{ color: "#7b928c", fontSize: "13px", marginTop: "4px" }}>
+                  <div style={{ color: "var(--muted)", fontSize: "13px", marginTop: "4px" }}>
                     Recommended training actions by role
                   </div>
                 </div>
@@ -805,7 +975,7 @@ export default function HrDashboard() {
                           style={{
                             textAlign: "left",
                             fontSize: "12px",
-                            color: "#7b928c",
+                            color: "var(--muted)",
                             fontWeight: 700,
                             padding: "0 14px 8px 14px",
                           }}
@@ -822,10 +992,10 @@ export default function HrDashboard() {
                         <td
                           colSpan={6}
                           style={{
-                            background: "#f8fbf9",
+                            background: "var(--surface-2)",
                             borderRadius: "18px",
                             padding: "22px",
-                            color: "#7b928c",
+                            color: "var(--muted)",
                             fontWeight: 600,
                           }}
                         >
@@ -840,7 +1010,7 @@ export default function HrDashboard() {
                           <tr key={`${row.role}-${row.missingSkill}`}>
                             <td
                               style={{
-                                background: "#f8fbf9",
+                                background: "var(--surface-2)",
                                 padding: "18px 14px",
                                 borderTopLeftRadius: "18px",
                                 borderBottomLeftRadius: "18px",
@@ -849,8 +1019,8 @@ export default function HrDashboard() {
                             >
                               {row.role}
                             </td>
-                            <td style={{ background: "#f8fbf9", padding: "18px 14px" }}>{row.missingSkill}</td>
-                            <td style={{ background: "#f8fbf9", padding: "18px 14px" }}>
+                            <td style={{ background: "var(--surface-2)", padding: "18px 14px" }}>{row.missingSkill}</td>
+                            <td style={{ background: "var(--surface-2)", padding: "18px 14px" }}>
                               <span
                                 style={{
                                   ...badgeStyle,
@@ -863,16 +1033,16 @@ export default function HrDashboard() {
                                 {row.gap}
                               </span>
                             </td>
-                            <td style={{ background: "#f8fbf9", padding: "18px 14px", fontWeight: 600 }}>
+                            <td style={{ background: "var(--surface-2)", padding: "18px 14px", fontWeight: 600 }}>
                               {row.suggestion}
                             </td>
-                            <td style={{ background: "#f8fbf9", padding: "18px 14px", minWidth: "180px" }}>
+                            <td style={{ background: "var(--surface-2)", padding: "18px 14px", minWidth: "180px" }}>
                               <div
                                 style={{
                                   width: "100%",
                                   height: "10px",
                                   borderRadius: "999px",
-                                  background: "#e6f0eb",
+                                  background: "var(--border)",
                                   overflow: "hidden",
                                 }}
                               >
@@ -885,13 +1055,13 @@ export default function HrDashboard() {
                                   }}
                                 />
                               </div>
-                              <div style={{ fontSize: "12px", color: "#69817a", marginTop: "6px" }}>
+                              <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "6px" }}>
                                 {row.progress}%
                               </div>
                             </td>
                             <td
                               style={{
-                                background: "#f8fbf9",
+                                background: "var(--surface-2)",
                                 padding: "18px 14px",
                                 borderTopRightRadius: "18px",
                                 borderBottomRightRadius: "18px",
@@ -927,10 +1097,10 @@ export default function HrDashboard() {
             {/* CALENDAR */}
             <section
               style={{
-                background: "#ffffff",
+                background: "var(--card)",
                 borderRadius: "26px",
                 padding: "24px",
-                border: "1px solid #edf2ef",
+                border: "1px solid var(--border)",
                 boxShadow: "0 8px 30px rgba(21, 61, 46, 0.05)",
                 minHeight: "470px",
               }}
@@ -944,21 +1114,24 @@ export default function HrDashboard() {
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: "24px" }}>June 2025</div>
-                  <div style={{ color: "#7a918a", fontSize: "13px", marginTop: "4px" }}>
-                    Upcoming leave and activity highlights
+                  <div style={{ fontWeight: 800, fontSize: "24px" }}>{calendarMonthLabel}</div>
+                  <div style={{ color: "var(--muted)", fontSize: "13px", marginTop: "4px" }}>
+                    Upcoming activity highlights
                   </div>
                 </div>
 
                 <div style={{ display: "flex", gap: "10px" }}>
                   <button
                     type="button"
+                    onClick={() =>
+                      setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+                    }
                     style={{
                       width: "40px",
                       height: "40px",
                       borderRadius: "12px",
-                      border: "1px solid #e8efeb",
-                      background: "#f8fbf9",
+                      border: "1px solid var(--border)",
+                      background: "var(--surface-2)",
                       cursor: "pointer",
                       fontSize: "16px",
                     }}
@@ -967,12 +1140,15 @@ export default function HrDashboard() {
                   </button>
                   <button
                     type="button"
+                    onClick={() =>
+                      setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+                    }
                     style={{
                       width: "40px",
                       height: "40px",
                       borderRadius: "12px",
-                      border: "1px solid #e8efeb",
-                      background: "#f8fbf9",
+                      border: "1px solid var(--border)",
+                      background: "var(--surface-2)",
                       cursor: "pointer",
                       fontSize: "16px",
                     }}
@@ -995,7 +1171,7 @@ export default function HrDashboard() {
                   <div
                     key={`${d}-${i}`}
                     style={{
-                      color: "#7a918a",
+                      color: "var(--muted)",
                       fontWeight: 800,
                       paddingBottom: "8px",
                     }}
@@ -1005,7 +1181,9 @@ export default function HrDashboard() {
                 ))}
 
                 {calendarDays.map((day, index) => {
-                  const isActive = day ? activeDays.includes(day) : false;
+                  const isStart = day ? calendarMarkers.startDays.has(day) : false;
+                  const isEnd = day ? calendarMarkers.endDays.has(day) : false;
+                  const isBoth = isStart && isEnd;
                   const isEmpty = !day;
 
                   return (
@@ -1016,10 +1194,18 @@ export default function HrDashboard() {
                         borderRadius: "14px",
                         display: "grid",
                         placeItems: "center",
-                        background: isEmpty ? "transparent" : isActive ? "#1ea672" : "#f8fbf9",
-                        color: isEmpty ? "transparent" : isActive ? "#ffffff" : "#465f58",
-                        fontWeight: isActive ? 800 : 700,
-                        border: isEmpty ? "none" : "1px solid #edf2ef",
+                        background: isEmpty
+                          ? "transparent"
+                          : isBoth
+                            ? "linear-gradient(135deg, #1ea672 0%, #f59e0b 100%)"
+                            : isStart
+                              ? "#1ea672"
+                              : isEnd
+                                ? "#f59e0b"
+                                : "var(--surface-2)",
+                        color: isEmpty ? "transparent" : isStart || isEnd ? "#ffffff" : "var(--text)",
+                        fontWeight: isStart || isEnd ? 800 : 700,
+                        border: isEmpty ? "none" : "1px solid var(--border)",
                         fontSize: "15px",
                       }}
                     >
@@ -1029,6 +1215,17 @@ export default function HrDashboard() {
                 })}
               </div>
 
+              <div style={{ display: "flex", gap: "14px", marginTop: "12px", fontSize: "12px", color: "var(--muted)" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ width: "10px", height: "10px", borderRadius: "999px", background: "#1ea672" }} />
+                  Start date
+                </span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ width: "10px", height: "10px", borderRadius: "999px", background: "#f59e0b" }} />
+                  End date
+                </span>
+              </div>
+
               <div
                 style={{
                   marginTop: "22px",
@@ -1036,43 +1233,58 @@ export default function HrDashboard() {
                   gap: "12px",
                 }}
               >
-                <div
-                  style={{
-                    padding: "14px 16px",
-                    borderRadius: "16px",
-                    background: "#f8fbf9",
-                    border: "1px solid #edf2ef",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, fontSize: "14px" }}>Team Training</div>
-                  <div style={{ marginTop: "4px", fontSize: "12px", color: "#799089" }}>
-                    14 June · Engineering onboarding session
+                {monthlyHighlights.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: "16px",
+                      background: "var(--surface-2)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: "14px" }}>No scheduled activities</div>
+                    <div style={{ marginTop: "4px", fontSize: "12px", color: "var(--muted)" }}>
+                      There are no activities planned for this month.
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  monthlyHighlights.map((activity) => {
+                    const start = new Date(activity.startDate || activity.createdAt || "");
+                    const when = Number.isNaN(start.getTime())
+                      ? "Date unavailable"
+                      : start.toLocaleDateString("en", {
+                          day: "2-digit",
+                          month: "short",
+                        });
 
-                <div
-                  style={{
-                    padding: "14px 16px",
-                    borderRadius: "16px",
-                    background: "#f8fbf9",
-                    border: "1px solid #edf2ef",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, fontSize: "14px" }}>Payroll Review</div>
-                  <div style={{ marginTop: "4px", fontSize: "12px", color: "#799089" }}>
-                    21 June · Monthly salary validation
-                  </div>
-                </div>
+                    return (
+                      <div
+                        key={activity._id}
+                        style={{
+                          padding: "14px 16px",
+                          borderRadius: "16px",
+                          background: "var(--surface-2)",
+                          border: "1px solid var(--border)",
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, fontSize: "14px" }}>{activity.title || "Untitled activity"}</div>
+                        <div style={{ marginTop: "4px", fontSize: "12px", color: "var(--muted)" }}>
+                          {when} · {activity.type}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </section>
 
             {/* PAYROLL */}
             <section
               style={{
-                background: "#ffffff",
+                background: "var(--card)",
                 borderRadius: "26px",
                 padding: "24px",
-                border: "1px solid #edf2ef",
+                border: "1px solid var(--border)",
                 boxShadow: "0 8px 30px rgba(21, 61, 46, 0.05)",
               }}
             >
@@ -1094,10 +1306,10 @@ export default function HrDashboard() {
                       justifyContent: "space-between",
                       alignItems: "center",
                       paddingBottom: "10px",
-                      borderBottom: "1px dashed #ebf1ee",
+                      borderBottom: "1px dashed var(--border)",
                     }}
                   >
-                    <span style={{ color: "#708781", fontSize: "13px" }}>{label}</span>
+                    <span style={{ color: "var(--muted)", fontSize: "13px" }}>{label}</span>
                     <span style={{ fontWeight: 700 }}>{value}</span>
                   </div>
                 ))}
@@ -1123,10 +1335,10 @@ export default function HrDashboard() {
             {/* NOTES */}
             <section
               style={{
-                background: "#ffffff",
+                background: "var(--card)",
                 borderRadius: "26px",
                 padding: "24px",
-                border: "1px solid #edf2ef",
+                border: "1px solid var(--border)",
                 boxShadow: "0 8px 30px rgba(21, 61, 46, 0.05)",
               }}
             >
@@ -1137,12 +1349,12 @@ export default function HrDashboard() {
                   style={{
                     padding: "16px",
                     borderRadius: "16px",
-                    background: "#f8fbf9",
-                    border: "1px solid #edf2ef",
+                    background: "var(--surface-2)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   <div style={{ fontWeight: 700, fontSize: "14px" }}>Promotion Feedback</div>
-                  <div style={{ fontSize: "12px", color: "#778e87", marginTop: "6px", lineHeight: 1.6 }}>
+                  <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "6px", lineHeight: 1.6 }}>
                     Promoted from HR Assistant to HR Officer due to consistent performance and leadership.
                   </div>
                 </div>
@@ -1151,12 +1363,12 @@ export default function HrDashboard() {
                   style={{
                     padding: "16px",
                     borderRadius: "16px",
-                    background: "#f8fbf9",
-                    border: "1px solid #edf2ef",
+                    background: "var(--surface-2)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   <div style={{ fontWeight: 700, fontSize: "14px" }}>Employee Appreciation</div>
-                  <div style={{ fontSize: "12px", color: "#778e87", marginTop: "6px", lineHeight: 1.6 }}>
+                  <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "6px", lineHeight: 1.6 }}>
                     Recognized by the head of HR for successfully leading the Q2 training rollout.
                   </div>
                 </div>

@@ -419,6 +419,53 @@
   background: linear-gradient(180deg, #ffffff 0%, #f3fbf5 100%);
 }
 
+:root[data-theme="dark"] .landing-page {
+  color: #e6edf8;
+  background: linear-gradient(180deg, #0d1628 0%, #0f1b32 45%, #111f38 100%);
+}
+
+:root[data-theme="dark"] .landing-bg-layer::before {
+  background: linear-gradient(to right, rgba(3, 8, 19, 0.74), rgba(3, 8, 19, 0.38));
+}
+
+:root[data-theme="dark"] .landing-nav-container,
+:root[data-theme="dark"] .landing-hero-wrapper,
+:root[data-theme="dark"] .landing-mini-stat,
+:root[data-theme="dark"] .landing-feature-card,
+:root[data-theme="dark"] .landing-role-card,
+:root[data-theme="dark"] .landing-hero-overlay-card,
+:root[data-theme="dark"] .landing-section-heading {
+  background: rgba(19, 30, 49, 0.9);
+  border-color: #2a3f60;
+  box-shadow: 0 18px 44px rgba(2, 6, 23, 0.36);
+}
+
+:root[data-theme="dark"] .landing-brand-text p,
+:root[data-theme="dark"] .landing-nav-links a,
+:root[data-theme="dark"] .landing-hero-text,
+:root[data-theme="dark"] .landing-mini-stat span,
+:root[data-theme="dark"] .landing-feature-content p,
+:root[data-theme="dark"] .landing-section-heading p,
+:root[data-theme="dark"] .landing-hero-overlay-card span {
+  color: #9fb0cc;
+}
+
+:root[data-theme="dark"] .landing-hero-overlay-card strong,
+:root[data-theme="dark"] .landing-secondary-btn {
+  color: #e6edf8;
+}
+
+:root[data-theme="dark"] .landing-secondary-btn {
+  background: #18243b;
+  border-color: #2b3e5e;
+}
+
+:root[data-theme="dark"] .landing-feature-tag,
+:root[data-theme="dark"] .landing-badge-soft {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
+
 .landing-role-photo {
   height: 300px;
   overflow: hidden;

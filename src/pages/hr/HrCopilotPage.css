@@ -409,3 +409,98 @@
     grid-template-columns: 1fr;
   }
 }
+
+:root[data-theme="dark"] .hr-copilot-page {
+  background: linear-gradient(180deg, #0f1726 0%, #0b1425 100%);
+}
+
+:root[data-theme="dark"] .copilot-search-card,
+:root[data-theme="dark"] .summary-card,
+:root[data-theme="dark"] .copilot-panel {
+  background: rgba(16, 27, 47, 0.9);
+  border-color: #253652;
+  box-shadow: 0 18px 34px rgba(2, 6, 23, 0.45);
+}
+
+:root[data-theme="dark"] .search-input-group input {
+  background: #131d31;
+  border-color: #2b3e5e;
+  color: #e6edf8;
+}
+
+:root[data-theme="dark"] .search-input-group input::placeholder {
+  color: #9fb0cc;
+}
+
+:root[data-theme="dark"] .copilot-error {
+  background: rgba(127, 29, 29, 0.3);
+  border-color: rgba(248, 113, 113, 0.5);
+  color: #fecaca;
+}
+
+:root[data-theme="dark"] .summary-label,
+:root[data-theme="dark"] .panel-header p,
+:root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .activity-card p,
+:root[data-theme="dark"] .candidate-card p,
+:root[data-theme="dark"] .score-item span,
+:root[data-theme="dark"] .explanation-box li {
+  color: #9fb0cc;
+}
+
+:root[data-theme="dark"] .summary-card strong,
+:root[data-theme="dark"] .panel-header h2,
+:root[data-theme="dark"] .card-top h3,
+:root[data-theme="dark"] .score-item strong,
+:root[data-theme="dark"] .explanation-title h3 {
+  color: #e6edf8;
+}
+
+:root[data-theme="dark"] .panel-header {
+  border-bottom-color: #253652;
+}
+
+:root[data-theme="dark"] .activity-card,
+:root[data-theme="dark"] .candidate-card,
+:root[data-theme="dark"] .explanation-box,
+:root[data-theme="dark"] .score-item {
+  background: #131d31;
+  border-color: #2b3e5e;
+}
+
+:root[data-theme="dark"] .explanation-box {
+  background: linear-gradient(180deg, #131d31 0%, #18243b 100%);
+}
+
+:root[data-theme="dark"] .active-card {
+  background: #18243b;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.16);
+}
+
+:root[data-theme="dark"] .badge {
+  background: rgba(59, 130, 246, 0.22);
+  color: #bfdbfe;
+}
+
+:root[data-theme="dark"] .score-badge,
+:root[data-theme="dark"] .explanation-title span,
+:root[data-theme="dark"] .panel-count {
+  background: rgba(34, 197, 94, 0.22);
+  color: #86efac;
+}
+
+:root[data-theme="dark"] .meta-pill,
+:root[data-theme="dark"] .candidate-rank {
+  background: #1c2a46;
+  border-color: #2b3e5e;
+  color: #c8d6eb;
+}
+
+:root[data-theme="dark"] .card-btn {
+  background: #1f7a44;
+}
+
+:root[data-theme="dark"] .card-btn:hover {
+  background: #239e55;
+}

@@ -27,7 +27,7 @@ import HrCopilotPage from "../pages/hr/HrCopilotPage";
 import ManagerTeam from "../pages/manger/ManagerTeam";
 import ManagerActivities from "../pages/manger/ManagerActivities.tsx";
 import ManagerDashboard from "../pages/manger/ManagerDashboard";
-
+import TextCorrectionPage from '../pages/ai/TextCorrectionPage';
 // Employee pages
 import CvUpload from "../pages/employee/CvUpload";
 import MySkillsPage from "../pages/employee/skills/MySkillsPage";
@@ -134,7 +134,7 @@ path: "/auth/account-pending", element: <AccountPending />
   { path: "/hr/copilot", element: <HrCopilotPage  /> },
           { path: "skills", element: <SkillsManagementPage /> },
           { path: "skills/assign", element: <AssignSkillPage /> },
-
+{ path: "ai/text-correction", element: <TextCorrectionPage  /> },
           { path: "profile", element: <Profile /> },
           { path: "notifications", element: <NotificationsPage /> },
           { path: "notifications/:side", element: <NotificationsPage /> },

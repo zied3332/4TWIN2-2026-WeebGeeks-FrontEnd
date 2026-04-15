@@ -56,6 +56,14 @@
   color: #b91c1c;
 }
 
+.staffing-success {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
 .staffing-loading-card {
   padding: 28px;
   color: #334155;

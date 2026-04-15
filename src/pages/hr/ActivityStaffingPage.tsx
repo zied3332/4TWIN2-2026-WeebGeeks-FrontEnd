@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { createInvitations } from "../../services/activityInvitations.service";
 import {
   getActivityStaffingStatus,
   getNextBackupCandidates,
@@ -19,6 +20,8 @@ export default function ActivityStaffingPage() {
   const [loading, setLoading] = useState(true);
   const [sendingToManager, setSendingToManager] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [hasSentToManager, setHasSentToManager] = useState(false);
 
   const [statusData, setStatusData] =
     useState<ActivityStaffingStatusResponse | null>(null);
@@ -96,20 +99,18 @@ export default function ActivityStaffingPage() {
       setSendingToManager(true);
       setError("");
 
-      navigate(`/manager/activities/${activityId}/review`, {
-        state: {
-          activityId,
-          activityTitle: statusData?.activityTitle || "Selected activity",
-          seatsRequired: statusData?.seatsRequired || selectedPrimaryIds.length,
-          hrSelectedCandidates: primaryCandidates.filter((candidate) =>
-            selectedPrimaryIds.includes(candidate.employeeId)
-          ),
-          backupCandidates,
-        },
+      // Call API to create invitations for selected candidates
+      await createInvitations({
+        activityId,
+        employeeIds: selectedPrimaryIds,
+        hrNote: `Sent to manager for approval on ${new Date().toLocaleDateString()}`,
       });
+
+      setSuccess("✓ Candidates sent to manager for approval. Status: Waiting for manager review.");
+      setHasSentToManager(true);
     } catch (err: any) {
       console.error(err);
-      setError(err?.message || "Failed to send data to manager review page.");
+      setError(err?.message || "Failed to send candidates to manager.");
     } finally {
       setSendingToManager(false);
     }
@@ -158,6 +159,7 @@ export default function ActivityStaffingPage() {
         </div>
 
         {error ? <div className="staffing-error">{error}</div> : null}
+        {success ? <div className="staffing-success">{success}</div> : null}
 
         {loading ? (
           <div className="staffing-loading-card">Loading staffing dashboard...</div>
@@ -286,14 +288,24 @@ export default function ActivityStaffingPage() {
                   })}
                 </div>
 
-                <button
-                  type="button"
-                  className="primary-staffing-btn"
-                  onClick={handleSendToManager}
-                  disabled={sendingToManager || selectedPrimaryIds.length === 0}
-                >
-                  {sendingToManager ? "Opening manager review..." : "Send to manager"}
-                </button>
+                {hasSentToManager ? (
+                  <button
+                    type="button"
+                    className="primary-staffing-btn"
+                    onClick={() => navigate(`/hr/activities/${activityId}/manager-decisions`)}
+                  >
+                    List of Approved Candidates
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="primary-staffing-btn"
+                    onClick={handleSendToManager}
+                    disabled={sendingToManager || selectedPrimaryIds.length === 0}
+                  >
+                    {sendingToManager ? "Sending..." : "Send to manager"}
+                  </button>
+                )}
               </section>
 
               <section className="staffing-panel">

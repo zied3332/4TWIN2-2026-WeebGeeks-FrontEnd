@@ -1,32 +1,96 @@
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useMemo, useState } from "react";
-import type { CandidateItem } from "../../types/hr-copilot";
+import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import {
+  getActivityById,
+  getActivitySkills,
+  type ActivityRecord,
+  type ActivitySkillRecord,
+} from "../../services/activities.service";
+import {
+  getActivityInvitations,
+  getNextBackupCandidates,
+} from "../../services/activityInvitations.service";
+import type { ActivityInvitationItem } from "../../types/activity-invitations";
 import "./ManagerActivityReviewPage.css";
 
-type ManagerReviewState = {
-  activityId: string;
-  activityTitle: string;
-  seatsRequired: number;
-  hrSelectedCandidates: CandidateItem[];
-  backupCandidates: CandidateItem[];
+type CandidateItem = {
+  employeeId: string;
+  name: string;
+  finalScore: number;
+  shortReason: string;
+  rank: number;
+  recommendationType: string;
 };
 
 export default function ManagerActivityReviewPage() {
   const { activityId = "" } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
 
-  const state = (location.state || {}) as Partial<ManagerReviewState>;
+  // Activity data
+  const [activity, setActivity] = useState<ActivityRecord | null>(null);
+  const [activitySkills, setActivitySkills] = useState<ActivitySkillRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const activityTitle = state.activityTitle || "Activity review";
-  const seatsRequired = state.seatsRequired || 0;
-  const hrSelectedCandidates = state.hrSelectedCandidates || [];
-  const backupCandidates = state.backupCandidates || [];
+  // Candidates data
+  const [hrSelectedCandidates, setHrSelectedCandidates] = useState<CandidateItem[]>([]);
+  const [backupCandidates, setBackupCandidates] = useState<CandidateItem[]>([]);
 
-  const [selectedFinalIds, setSelectedFinalIds] = useState<string[]>(
-    hrSelectedCandidates.map((candidate) => candidate.employeeId)
-  );
+  // Manager selection state
+  const [selectedFinalIds, setSelectedFinalIds] = useState<string[]>([]);
   const [feedback, setFeedback] = useState("");
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!activityId) return;
+      setLoading(true);
+      setError("");
+      try {
+        // Load activity details
+        const activityData = await getActivityById(activityId);
+        setActivity(activityData);
+
+        // Load activity skills
+        const skills = await getActivitySkills(activityId);
+        setActivitySkills(skills);
+
+        // Load invitations (suggested employees)
+        const invitations = await getActivityInvitations(activityId);
+        const invitedCandidates: CandidateItem[] = invitations
+          .filter((inv: ActivityInvitationItem) => inv.status === "INVITED")
+          .map((inv: ActivityInvitationItem, index: number) => ({
+            employeeId: inv.employeeId,
+            name: inv.employeeId, // Will be replaced with actual name when we have user data
+            finalScore: 85 - index * 5, // Placeholder scoring
+            shortReason: "Recommended by HR based on skills match",
+            rank: index + 1,
+            recommendationType: "PRIMARY",
+          }));
+        setHrSelectedCandidates(invitedCandidates);
+        setSelectedFinalIds(invitedCandidates.map((c) => c.employeeId));
+
+        // Load backup candidates
+        const backups = await getNextBackupCandidates(activityId, 5);
+        setBackupCandidates(
+          backups.availableBackups.map((b) => ({
+            employeeId: b.employeeId,
+            name: b.name,
+            finalScore: b.finalScore,
+            shortReason: b.shortReason,
+            rank: b.rank || 0,
+            recommendationType: b.recommendationType || "BACKUP",
+          }))
+        );
+      } catch (e: any) {
+        console.error("Failed to load data:", e);
+        setError(e?.message || "Failed to load activity data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [activityId]);
 
   const finalSelected = useMemo(() => {
     return hrSelectedCandidates.filter((candidate) =>
@@ -44,15 +108,42 @@ export default function ManagerActivityReviewPage() {
 
   const handleApprove = () => {
     window.alert(
-      `Manager approved ${finalSelected.length} participants for "${activityTitle}". Backend endpoint comes next.`
+      `Manager approved ${finalSelected.length} participants for "${activity?.title || "Activity"}". Backend endpoint comes next.`
     );
   };
 
   const handleReject = () => {
     window.alert(
-      `Manager rejected or requested changes for "${activityTitle}". Backend endpoint comes next.`
+      `Manager rejected or requested changes for "${activity?.title || "Activity"}". Backend endpoint comes next.`
     );
   };
+
+  if (loading) {
+    return (
+      <div className="manager-review-page">
+        <div className="manager-review-shell">
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <p>Loading activity data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !activity) {
+    return (
+      <div className="manager-review-page">
+        <div className="manager-review-shell">
+          <div style={{ textAlign: "center", padding: 40, color: "#b91c1c" }}>
+            <p>{error || "Activity not found"}</p>
+            <button onClick={() => navigate(-1)} style={{ marginTop: 16 }}>
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="manager-review-page">
@@ -60,7 +151,7 @@ export default function ManagerActivityReviewPage() {
         <div className="manager-review-header">
           <div>
             <span className="manager-review-kicker">Manager review</span>
-            <h1>{activityTitle}</h1>
+            <h1>{activity?.title || "Activity review"}</h1>
             <p>
               Review the HR shortlist, adjust participants, and confirm the final list before employees are notified.
             </p>
@@ -70,7 +161,7 @@ export default function ManagerActivityReviewPage() {
         <div className="manager-review-stats">
           <div className="manager-review-stat-card">
             <span>Seats required</span>
-            <strong>{seatsRequired}</strong>
+            <strong>{activity?.availableSlots || 0}</strong>
           </div>
           <div className="manager-review-stat-card">
             <span>HR selected</span>

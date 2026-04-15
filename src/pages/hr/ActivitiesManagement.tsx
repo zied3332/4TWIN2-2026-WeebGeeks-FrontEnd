@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { FiEdit2, FiEye, FiTrash2, FiPlus, FiX, FiSearch, FiFilter, FiExternalLink } from "react-icons/fi";
+import { FiEdit2, FiEye, FiTrash2, FiPlus, FiX, FiSearch, FiFilter, FiExternalLink, FiUsers } from "react-icons/fi";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   updateActivityById,
@@ -202,6 +202,25 @@ const skillLevelOptions: ("LOW" | "MEDIUM" | "HIGH" | "EXPERT")[] = ["LOW", "MED
 
 const formatLabel = (v: string) => v.charAt(0) + v.slice(1).toLowerCase().replace(/_/g, " ");
 
+// Calculate working days between two dates (excluding weekends)
+const calculateWorkingDays = (startDate: string, endDate: string): number => {
+  if (!startDate || !endDate) return 0;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (end < start) return 0;
+
+  let workingDays = 0;
+  const current = new Date(start);
+  while (current <= end) {
+    const dayOfWeek = current.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      workingDays++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return workingDays;
+};
+
 const statusPalette: Record<ActivityStatus, { bg: string; color: string }> = {
   PLANNED: { bg: "#eff6ff", color: "#1d4ed8" },
   IN_PROGRESS: { bg: "#fef3c7", color: "#a16207" },
@@ -285,6 +304,7 @@ export default function ActivitiesManagement() {
     status: "PLANNED", responsibleManagerId: "", departmentId: "",
   });
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
+  const [calculatedDuration, setCalculatedDuration] = useState<number>(0);
 
   const sectionGroupByParam = searchParams.get("sectionGroupBy");
   const sectionKeyParam = searchParams.get("sectionKey");
@@ -320,9 +340,27 @@ export default function ActivitiesManagement() {
   }, []);
 
   // Derived data
-  const managers = useMemo(() => 
+  const managers = useMemo(() =>
     (users || []).filter((u) => String(u.role || "").toUpperCase() === "MANAGER"), [users]);
-  
+
+  // Filter managers by selected department for the activity form
+  const formFilteredManagers = useMemo(() => {
+    if (!form.departmentId) return [];
+    return managers.filter((m) =>
+      String(m.department || "").toLowerCase() === String(form.departmentId || "").toLowerCase() ||
+      String(m.department || "") === String(form.departmentId || "")
+    );
+  }, [managers, form.departmentId]);
+
+  // Filter managers by selected department for the assignment form
+  const assignFilteredManagers = useMemo(() => {
+    if (!assignForm.departmentId) return [];
+    return managers.filter((m) =>
+      String(m.department || "").toLowerCase() === String(assignForm.departmentId || "").toLowerCase() ||
+      String(m.department || "") === String(assignForm.departmentId || "")
+    );
+  }, [managers, assignForm.departmentId]);
+
   const managerNameById = useMemo(() => {
     const map = new Map<string, string>();
     managers.forEach((m) => map.set(String(m._id), String(m.name || "-")));
@@ -460,6 +498,8 @@ export default function ActivitiesManagement() {
     if (!form.duration.trim()) return "Duration is required (e.g., 4 weeks, 6 days).";
     if (!Number.isFinite(form.availableSlots) || form.availableSlots <= 0) 
       return "Seats must be greater than 0.";
+    if (!form.departmentId) return "Department is required.";
+    if (!form.responsibleManagerId) return "Responsible manager is required.";
     return "";
   };
 
@@ -525,6 +565,8 @@ export default function ActivitiesManagement() {
 
   const openEdit = async (a: ActivityRecord) => {
     setSelectedActivity(a);
+    const workingDays = calculateWorkingDays(a.startDate, a.endDate);
+    setCalculatedDuration(workingDays);
     setForm({
       title: a.title, type: a.type, availableSlots: a.availableSlots,
       description: a.description, location: a.location, startDate: a.startDate,
@@ -674,6 +716,13 @@ export default function ActivitiesManagement() {
           </button>
           <button
             type="button"
+            style={{ ...styles.btn, fontSize: "13px", padding: "8px 12px", background: "#dcfce7", border: "1px solid #86efac", color: "#166534" }}
+            onClick={(e) => { e.stopPropagation(); navigate(`/hr/activities/${a._id}/staffing`); }}
+          >
+            <FiUsers size={14} /> Staff
+          </button>
+          <button
+            type="button"
             style={{ ...styles.btn, ...styles.btnDanger, fontSize: "13px", padding: "8px 12px" }}
             onClick={(e) => { e.stopPropagation(); setDeleteConfirm(a._id); }}
           >
@@ -709,7 +758,7 @@ export default function ActivitiesManagement() {
             }}
             onClick={() => {
               setError(""); setSuccess(""); setForm(INITIAL_FORM); setSelectedSkills([]);
-              setSelectedActivity(null); setCreateOpen(true);
+              setSelectedActivity(null); setCalculatedDuration(0); setCreateOpen(true);
             }}
           >
             <FiPlus size={18} /> Create New Activity
@@ -991,7 +1040,16 @@ export default function ActivitiesManagement() {
                     <input
                       style={styles.input} type="date"
                       value={form.startDate}
-                      onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))}
+                      onChange={(e) => {
+                        const newStartDate = e.target.value;
+                        const workingDays = calculateWorkingDays(newStartDate, form.endDate);
+                        setCalculatedDuration(workingDays);
+                        setForm((prev) => ({
+                          ...prev,
+                          startDate: newStartDate,
+                          duration: workingDays > 0 ? `${workingDays} days` : prev.duration,
+                        }));
+                      }}
                     />
                   </div>
                   <div>
@@ -999,13 +1057,29 @@ export default function ActivitiesManagement() {
                     <input
                       style={styles.input} type="date"
                       value={form.endDate}
-                      onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))}
+                      onChange={(e) => {
+                        const newEndDate = e.target.value;
+                        const workingDays = calculateWorkingDays(form.startDate, newEndDate);
+                        setCalculatedDuration(workingDays);
+                        setForm((prev) => ({
+                          ...prev,
+                          endDate: newEndDate,
+                          duration: workingDays > 0 ? `${workingDays} days` : prev.duration,
+                        }));
+                      }}
                     />
                   </div>
                 </div>
                 <div style={{ ...styles.grid4, marginTop: "14px" }}>
                   <div>
-                    <label style={styles.label}>Duration</label>
+                    <label style={styles.label}>
+                      Duration
+                      {calculatedDuration > 0 && (
+                        <span style={{ fontSize: "11px", fontWeight: 500, color: "var(--muted)", marginLeft: "6px" }}>
+                          (max: {calculatedDuration} days)
+                        </span>
+                      )}
+                    </label>
                     <input
                       style={styles.input} placeholder="e.g., 4 weeks"
                       value={form.duration}
@@ -1023,25 +1097,28 @@ export default function ActivitiesManagement() {
                     </select>
                   </div>
                   <div>
-                    <label style={styles.label}>Manager</label>
+                    <label style={styles.label}>Department *</label>
+                    <select
+                      style={styles.input}
+                      value={form.departmentId}
+                      onChange={(e) => setForm((prev) => ({ ...prev, departmentId: e.target.value, responsibleManagerId: "" }))}
+                    >
+                      <option value="">Select department...</option>
+                      {departments.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={styles.label}>Responsible Manager *</label>
                     <select
                       style={styles.input}
                       value={form.responsibleManagerId}
                       onChange={(e) => setForm((prev) => ({ ...prev, responsibleManagerId: e.target.value }))}
+                      disabled={!form.departmentId}
                     >
-                      <option value="">Optional</option>
-                      {managers.map((m) => <option key={m._id} value={m._id}>{m.name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={styles.label}>Department</label>
-                    <select
-                      style={styles.input}
-                      value={form.departmentId}
-                      onChange={(e) => setForm((prev) => ({ ...prev, departmentId: e.target.value }))}
-                    >
-                      <option value="">Optional</option>
-                      {departments.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
+                      <option value="">
+                        {form.departmentId ? "Select manager..." : "Select department first"}
+                      </option>
+                      {formFilteredManagers.map((m) => <option key={m._id} value={m._id}>{m.name}</option>)}
                     </select>
                   </div>
                 </div>
@@ -1112,25 +1189,28 @@ export default function ActivitiesManagement() {
                   </select>
                 </div>
                 <div>
-                  <label style={styles.label}>Responsible Manager</label>
+                  <label style={styles.label}>Department *</label>
+                  <select
+                    style={styles.input}
+                    value={assignForm.departmentId}
+                    onChange={(e) => setAssignForm((prev) => ({ ...prev, departmentId: e.target.value, responsibleManagerId: "" }))}
+                  >
+                    <option value="">Select department...</option>
+                    {departments.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={styles.label}>Responsible Manager *</label>
                   <select
                     style={styles.input}
                     value={assignForm.responsibleManagerId}
                     onChange={(e) => setAssignForm((prev) => ({ ...prev, responsibleManagerId: e.target.value }))}
+                    disabled={!assignForm.departmentId}
                   >
-                    <option value="">Optional</option>
-                    {managers.map((m) => <option key={m._id} value={m._id}>{m.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={styles.label}>Department</label>
-                  <select
-                    style={styles.input}
-                    value={assignForm.departmentId}
-                    onChange={(e) => setAssignForm((prev) => ({ ...prev, departmentId: e.target.value }))}
-                  >
-                    <option value="">Optional</option>
-                    {departments.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
+                    <option value="">
+                      {assignForm.departmentId ? "Select manager..." : "Select department first"}
+                    </option>
+                    {assignFilteredManagers.map((m) => <option key={m._id} value={m._id}>{m.name}</option>)}
                   </select>
                 </div>
               </div>

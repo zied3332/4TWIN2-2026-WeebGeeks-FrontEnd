@@ -25,6 +25,7 @@ import HrCopilotPage from "../pages/hr/HrCopilotPage";
 import HrStatsDashboard from "../pages/hr/HrStatsDashboard";
 import HrCalendarPage from "../pages/hr/HrCalendarPage.tsx";
 import ActivityStaffingPage from "../pages/hr/ActivityStaffingPage";
+import ManagerDecisionsPage from "../pages/hr/ManagerDecisionsPage";
 
 // Manager pages
 import ManagerTeam from "../pages/manger/ManagerTeam";
@@ -133,6 +134,7 @@ export const router = createBrowserRouter([
           { path: "departments", element: <HrDepartments /> },
           { path: "activities", element: <HrActivitiesManagement /> },
           { path: "activities/:activityId/staffing", element: <ActivityStaffingPage /> },
+          { path: "activities/:activityId/manager-decisions", element: <ManagerDecisionsPage /> },
           { path: "skills-dashboard", element: <HrSkillsDashboard /> },
           { path: "recommendations", element: <HrGenerateRecommendations /> },
           { path: "recommendations/generate", element: <HrGenerateRecommendations /> },

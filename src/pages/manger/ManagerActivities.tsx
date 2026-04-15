@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   listActivities,
   getActivitySkills,
@@ -60,12 +61,11 @@ function formatStatus(v: string) {
 }
 
 export default function ManagerActivities() {
+  const navigate = useNavigate();
   const [activities, setActivities] = useState<ActivityRecord[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedActivity, setSelectedActivity] = useState<ActivityRecord | null>(null);
-  const [activitySkills, setActivitySkills] = useState<ActivitySkillRecord[]>([]);
 
   const currentUser = useMemo(() => {
     try {
@@ -129,15 +129,8 @@ export default function ManagerActivities() {
     return map;
   }, [departments]);
 
-  const openActivityDetails = async (activity: ActivityRecord) => {
-    setSelectedActivity(activity);
-    try {
-      const skills = await getActivitySkills(activity._id);
-      setActivitySkills(skills);
-    } catch (e: any) {
-      console.error("Failed to load skills:", e);
-      setActivitySkills([]);
-    }
+  const openActivityReview = (activity: ActivityRecord) => {
+    navigate(`/manager/activities/${activity._id}/review`);
   };
 
   if (loading) {
@@ -169,12 +162,22 @@ export default function ManagerActivities() {
             {filteredActivities.map((activity: any) => (
               <div
                 key={activity._id}
+                onClick={() => openActivityReview(activity)}
                 style={{
                   ...card,
                   display: "grid",
-                  gridTemplateColumns: "1fr auto",
+                  gridTemplateColumns: "1fr",
                   gap: 16,
                   alignItems: "start",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#3b82f6";
+                  e.currentTarget.style.boxShadow = "0 10px 30px rgba(59, 130, 246, 0.15)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border)";
+                  e.currentTarget.style.boxShadow = "0 10px 24px rgba(15, 23, 42, 0.08)";
                 }}
               >
                 <div>
@@ -215,169 +218,11 @@ export default function ManagerActivities() {
                   </div>
                 </div>
 
-                <button style={btn} onClick={() => openActivityDetails(activity)}>
-                  View Details
-                </button>
               </div>
             ))}
           </div>
         )}
       </div>
-
-      {/* Details Modal */}
-      {selectedActivity && (
-        <div
-          onClick={() => setSelectedActivity(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(2,6,23,0.45)",
-            zIndex: 110,
-            display: "grid",
-            placeItems: "center",
-            padding: 16,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ width: "min(640px, 96vw)", maxHeight: "85vh", overflowY: "auto", ...card }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 12, marginBottom: 16 }}>
-              <div>
-                <div style={{ fontWeight: 900, fontSize: 18, color: "var(--text)" }}>
-                  {selectedActivity.title}
-                </div>
-                <div style={{ marginTop: 4, color: "var(--muted)", fontWeight: 700 }}>
-                  {selectedActivity.type}
-                </div>
-              </div>
-              <button
-                type="button"
-                style={btn}
-                onClick={() => setSelectedActivity(null)}
-              >
-                Close
-              </button>
-            </div>
-
-            <div style={{ display: "grid", gap: 12 }}>
-              <div>
-                <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Description</div>
-                <div style={{ color: "var(--text)", fontSize: 14, lineHeight: 1.5 }}>
-                  {selectedActivity.description}
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Location</div>
-                  <div style={{ color: "var(--text)" }}>{selectedActivity.location}</div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Duration</div>
-                  <div style={{ color: "var(--text)" }}>{selectedActivity.duration}</div>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Start Date</div>
-                  <div style={{ color: "var(--text)" }}>
-                    {new Date(selectedActivity.startDate).toLocaleDateString()}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>End Date</div>
-                  <div style={{ color: "var(--text)" }}>
-                    {new Date(selectedActivity.endDate).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Status</div>
-                  <span style={badge(...statusColors[selectedActivity.status])}>
-                    {formatStatus(selectedActivity.status)}
-                  </span>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Context</div>
-                  <span style={badge(...contextColors[selectedActivity.priorityContext])}>
-                    {selectedActivity.priorityContext}
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Priority Level</div>
-                  <div style={{ color: "var(--text)" }}>{formatLevel(selectedActivity.targetLevel)}</div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Seats Available</div>
-                  <div style={{ color: "var(--text)" }}>{selectedActivity.availableSlots}</div>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Department</div>
-                  <div style={{ color: "var(--text)" }}>
-                    {departmentNameById.get(selectedActivity.departmentId || "") || "-"}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Responsible Manager</div>
-                  <div style={{ color: "var(--text)" }}>
-                    {managerNameById.get(selectedActivity.responsibleManagerId || "") || "Unassigned"}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>Created At</div>
-                <div style={{ color: "var(--text)" }}>
-                  {selectedActivity.createdAt
-                    ? new Date(selectedActivity.createdAt).toLocaleString()
-                    : "-"}
-                </div>
-              </div>
-
-              {activitySkills.length > 0 && (
-                <div>
-                  <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 8 }}>Required Skills</div>
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {activitySkills.map((as: any, idx: number) => (
-                      <div
-                        key={idx}
-                        style={{
-                          borderLeft: "3px solid color-mix(in srgb, var(--primary) 55%, var(--border))",
-                          paddingLeft: 12,
-                          color: "var(--text)",
-                          fontSize: 13,
-                        }}
-                      >
-                        <div style={{ fontWeight: 700 }}>{as.skill_id.name}</div>
-                        <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
-                          Level: <span style={{ fontWeight: 700 }}>{as.required_level}</span> | Importance:{" "}
-                          <span style={{ fontWeight: 700 }}>{(as.weight * 100).toFixed(0)}%</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
-                <button style={{ ...btn, flex: 1 }} onClick={() => setSelectedActivity(null)}>
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

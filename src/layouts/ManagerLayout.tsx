@@ -27,7 +27,6 @@ export default function ManagerLayout() {
         { to: "/manager/dashboard", label: "Dashboard" },
         { to: "/manager/team", label: "My Team" },
         { to: "/manager/activities", label: "Activities" },
-        { to: "/manager/activities", label: "Activity Reviews", end: true },
         { to: "/manager/skills", label: "Skills Management", end: true },
         { to: "/manager/skills/assign", label: "Assign Skills", end: true },
         { to: "/manager/notifications", label: "Notifications" },

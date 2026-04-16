@@ -10,6 +10,7 @@ export type ActivityInvitationItem = {
   id?: string;
   activityId: string;
   employeeId: string;
+  employeeName?: string;
   status: InvitationStatus;
   declineReason?: string;
   invitedAt?: string;

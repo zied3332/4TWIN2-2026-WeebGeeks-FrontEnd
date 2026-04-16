@@ -163,7 +163,7 @@ export default function ManagerDecisionsPage() {
                   <div className="candidate-info">
                     <div className="candidate-name">
                       {getStatusIcon("ACCEPTED")}
-                      <h3>Employee ID: {invitation.employeeId}</h3>
+                      <h3>{invitation.employeeName || `Employee ID: ${invitation.employeeId}`}</h3>
                       <span className={`status-badge ${getStatusClass("ACCEPTED")}`}>
                         ACCEPTED
                       </span>
@@ -197,7 +197,7 @@ export default function ManagerDecisionsPage() {
                   <div className="candidate-info">
                     <div className="candidate-name">
                       {getStatusIcon("REJECTED")}
-                      <h3>Employee ID: {invitation.employeeId}</h3>
+                      <h3>{invitation.employeeName || `Employee ID: ${invitation.employeeId}`}</h3>
                       <span className={`status-badge ${getStatusClass("REJECTED")}`}>
                         REJECTED
                       </span>
@@ -236,7 +236,7 @@ export default function ManagerDecisionsPage() {
                   <div className="candidate-info">
                     <div className="candidate-name">
                       {getStatusIcon("PENDING")}
-                      <h3>Employee ID: {invitation.employeeId}</h3>
+                      <h3>{invitation.employeeName || `Employee ID: ${invitation.employeeId}`}</h3>
                       <span className={`status-badge ${getStatusClass("PENDING")}`}>
                         WAITING
                       </span>

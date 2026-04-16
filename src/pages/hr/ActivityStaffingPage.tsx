@@ -385,7 +385,7 @@ export default function ActivityStaffingPage() {
                   {statusData.invitations.map((invitation: ActivityInvitationItem, index) => (
                     <div key={invitation._id || invitation.id || index} className="invitation-card">
                       <div className="candidate-title-row">
-                        <h3>Employee ID: {invitation.employeeId}</h3>
+                        <h3>{invitation.employeeName || `Employee ID: ${invitation.employeeId}`}</h3>
                         <span className={`status-badge ${invitation.status.toLowerCase()}`}>
                           {invitation.status}
                         </span>

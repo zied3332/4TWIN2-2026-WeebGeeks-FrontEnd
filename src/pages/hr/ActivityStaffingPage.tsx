@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { createInvitations } from "../../services/activityInvitations.service";
 import {
   getActivityStaffingStatus,
   getNextBackupCandidates,
 } from "../../services/activityInvitations.service";
+import {
+  getActivityReview,
+  saveHrShortlist,
+  submitHrShortlistToManager,
+} from "../../services/activityReviews.service";
 import { getCandidates } from "../../services/hrCopilot.service";
 import type { CandidateItem } from "../../types/hr-copilot";
+import type { ActivityReviewRecord } from "../../types/activity-review";
 import type {
   ActivityInvitationItem,
   ActivityStaffingStatusResponse,
@@ -21,7 +26,9 @@ export default function ActivityStaffingPage() {
   const [sendingToManager, setSendingToManager] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [hasSentToManager, setHasSentToManager] = useState(false);
+  const [activityReview, setActivityReview] = useState<ActivityReviewRecord | null>(
+    null
+  );
 
   const [statusData, setStatusData] =
     useState<ActivityStaffingStatusResponse | null>(null);
@@ -39,16 +46,27 @@ export default function ActivityStaffingPage() {
       setError("");
       setLoading(true);
 
-      const [staffing, recommendations, nextBackups] = await Promise.all([
+      const [staffing, recommendations, nextBackups, review] = await Promise.all([
         getActivityStaffingStatus(activityId),
         getCandidates(activityId),
         getNextBackupCandidates(activityId, 10),
+        getActivityReview(activityId),
       ]);
 
       setStatusData(staffing);
-      setPrimaryCandidates(recommendations.primaryCandidates || []);
+      setActivityReview(review);
+      const primaries = recommendations.primaryCandidates || [];
+      setPrimaryCandidates(primaries);
       setBackupCandidates(recommendations.backupCandidates || []);
       setAvailableBackups(nextBackups.availableBackups || []);
+
+      if (review?.hrSelectedEmployeeIds?.length) {
+        setSelectedPrimaryIds(review.hrSelectedEmployeeIds);
+      } else if (primaries.length > 0) {
+        setSelectedPrimaryIds(primaries.map((c) => c.employeeId));
+      } else {
+        setSelectedPrimaryIds([]);
+      }
     } catch (err: any) {
       console.error(err);
       setError(
@@ -63,11 +81,10 @@ export default function ActivityStaffingPage() {
     loadPage();
   }, [activityId]);
 
-  useEffect(() => {
-    if (primaryCandidates.length > 0) {
-      setSelectedPrimaryIds(primaryCandidates.map((candidate) => candidate.employeeId));
-    }
-  }, [primaryCandidates]);
+  const listSentToManager = useMemo(() => {
+    const s = activityReview?.status;
+    return s === "SUBMITTED_TO_MANAGER" || s === "APPROVED_BY_MANAGER";
+  }, [activityReview?.status]);
 
   const invitedEmployeeIds = useMemo(() => {
     return new Set((statusData?.invitations || []).map((inv) => inv.employeeId));
@@ -95,19 +112,27 @@ export default function ActivityStaffingPage() {
       return;
     }
 
+    if (listSentToManager) {
+      return;
+    }
+
     try {
       setSendingToManager(true);
       setError("");
 
-      // Call API to create invitations for selected candidates
-      await createInvitations({
-        activityId,
+      const hrNote = `Sent to manager for approval on ${new Date().toLocaleDateString()}`;
+      await saveHrShortlist(activityId, {
         employeeIds: selectedPrimaryIds,
-        hrNote: `Sent to manager for approval on ${new Date().toLocaleDateString()}`,
+        hrNote,
       });
+      const submitResult = await submitHrShortlistToManager(activityId);
+      if (submitResult?.review) {
+        setActivityReview(submitResult.review);
+      }
 
-      setSuccess("✓ Candidates sent to manager for approval. Status: Waiting for manager review.");
-      setHasSentToManager(true);
+      setSuccess(
+        "Shortlist sent to the activity manager. They will review and confirm participants before employees are notified."
+      );
     } catch (err: any) {
       console.error(err);
       setError(err?.message || "Failed to send candidates to manager.");
@@ -222,6 +247,7 @@ export default function ActivityStaffingPage() {
                       type="button"
                       className="secondary-staffing-btn"
                       onClick={handleSelectAll}
+                      disabled={listSentToManager}
                     >
                       Select all
                     </button>
@@ -229,6 +255,7 @@ export default function ActivityStaffingPage() {
                       type="button"
                       className="secondary-staffing-btn"
                       onClick={handleClearSelection}
+                      disabled={listSentToManager}
                     >
                       Clear
                     </button>
@@ -243,6 +270,7 @@ export default function ActivityStaffingPage() {
                     const selected = selectedPrimaryIds.includes(
                       candidate.employeeId
                     );
+                    const selectionLocked = listSentToManager || alreadyInvited;
 
                     return (
                       <div key={candidate.employeeId} className="staffing-candidate-card">
@@ -273,13 +301,17 @@ export default function ActivityStaffingPage() {
                             <input
                               type="checkbox"
                               checked={selected}
-                              disabled={alreadyInvited}
+                              disabled={selectionLocked}
                               onChange={() =>
                                 togglePrimarySelection(candidate.employeeId)
                               }
                             />
                             <span>
-                              {alreadyInvited ? "Already invited" : "Include in HR shortlist"}
+                              {listSentToManager
+                                ? "Shortlist sent to manager"
+                                : alreadyInvited
+                                  ? "Already invited"
+                                  : "Include in HR shortlist"}
                             </span>
                           </label>
                         </div>
@@ -288,13 +320,13 @@ export default function ActivityStaffingPage() {
                   })}
                 </div>
 
-                {hasSentToManager ? (
+                {listSentToManager ? (
                   <button
                     type="button"
                     className="primary-staffing-btn"
                     onClick={() => navigate(`/hr/activities/${activityId}/manager-decisions`)}
                   >
-                    List of Approved Candidates
+                    Manager list
                   </button>
                 ) : (
                   <button

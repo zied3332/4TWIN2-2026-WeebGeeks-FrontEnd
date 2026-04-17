@@ -19,11 +19,11 @@
   --topbar-bg: #ffffff;
   --topbar-border: #e5ebf5;
   --sidebar-link: #475569;
-  --sidebar-link-hover-bg: #eef4fe;
-  --sidebar-link-hover-text: #0f172a;
-  --sidebar-link-active-bg: linear-gradient(180deg, #e9f2ff, #e3eefc);
-  --sidebar-link-active-text: #1d4ed8;
-  --sidebar-link-active-pill: #2563eb;
+  --sidebar-link-hover-bg: #ecfdf5;
+  --sidebar-link-hover-text: #065f46;
+  --sidebar-link-active-bg: linear-gradient(180deg, #ecfdf5, #d1fae5);
+  --sidebar-link-active-text: #047857;
+  --sidebar-link-active-pill: #10b981;
 
   --primary: #10b981;
   --primary-weak: rgba(16, 185, 129, 0.12);
@@ -58,11 +58,11 @@
   --topbar-bg: #101b2f;
   --topbar-border: #213452;
   --sidebar-link: #b7c6dd;
-  --sidebar-link-hover-bg: #1b2b47;
-  --sidebar-link-hover-text: #f1f5ff;
-  --sidebar-link-active-bg: linear-gradient(180deg, #1c2f52, #1a2a48);
-  --sidebar-link-active-text: #93b8ff;
-  --sidebar-link-active-pill: #6fa8ff;
+  --sidebar-link-hover-bg: #1a2f28;
+  --sidebar-link-hover-text: #a7f3d0;
+  --sidebar-link-active-bg: linear-gradient(180deg, #142f25, #122922);
+  --sidebar-link-active-text: #6ee7b7;
+  --sidebar-link-active-pill: #34d399;
   --shadow: 0 1px 0 rgba(10, 15, 26, 0.45);
   --shadow-lg: 0 14px 32px rgba(2, 6, 23, 0.48);
 }
@@ -888,6 +888,10 @@ a { color: inherit; }
   background: var(--sidebar-link-hover-bg);
   color: var(--sidebar-link-hover-text);
   transform: translateY(-1px);
+}
+
+.side-link:hover:not(.active) .side-link-icon {
+  color: var(--sidebar-link-active-pill);
 }
 
 .side-link.active{

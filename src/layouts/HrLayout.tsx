@@ -25,6 +25,8 @@ export default function HrLayout() {
       { to: "/hr/employees", label: "Employee Management" },
       { to: "/hr/departments", label: "Departments Management" },
       { to: "/hr/activities", label: "Activity Management", end: true },
+      { to: "/hr/activities/pipeline", label: "Staffing & validation" },
+      { to: "/hr/activities/archive", label: "Completed activities" },
       { to: "/hr/skills", label: "Skills Management", end: true },
       { to: "/hr/skills/assign", label: "Assign Skills", end: true },
       { to: "/hr/copilot", label: "HrCopilotPage" },

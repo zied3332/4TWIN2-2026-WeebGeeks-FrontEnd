@@ -26,7 +26,9 @@ export default function ManagerLayout() {
       nav={[
         { to: "/manager/dashboard", label: "Dashboard" },
         { to: "/manager/team", label: "My Team" },
-        { to: "/manager/activities", label: "Activities" },
+        { to: "/manager/activities", label: "Activities", end: true },
+        { to: "/manager/activities/running", label: "In progress" },
+        { to: "/manager/activities/archive", label: "Past activities" },
         { to: "/manager/skills", label: "Skills Management", end: true },
         { to: "/manager/skills/assign", label: "Assign Skills", end: true },
         { to: "/manager/history", label: "My history" },

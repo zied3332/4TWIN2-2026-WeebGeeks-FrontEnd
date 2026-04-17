@@ -197,10 +197,15 @@ const styles = {
 const activityTypeOptions: ActivityType[] = ["TRAINING", "CERTIFICATION", "PROJECT", "MISSION", "AUDIT"];
 const levelOptions: DesiredLevel[] = ["LOW", "MEDIUM", "HIGH"];
 const contextOptions: PriorityContext[] = ["UPSKILLING", "EXPERTISE", "DEVELOPMENT"];
+/** Board grouping — lifecycle is system-driven but columns stay for filtering */
 const statusOptions: ActivityStatus[] = ["PLANNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
 const skillLevelOptions: ("LOW" | "MEDIUM" | "HIGH" | "EXPERT")[] = ["LOW", "MEDIUM", "HIGH", "EXPERT"];
 
 const formatLabel = (v: string) => v.charAt(0) + v.slice(1).toLowerCase().replace(/_/g, " ");
+
+function canDeleteActivity(a: ActivityRecord): boolean {
+  return a.status === "PLANNED" && (a.workflowStatus === "DRAFT" || !a.workflowStatus);
+}
 
 // Calculate working days between two dates (excluding weekends)
 const calculateWorkingDays = (startDate: string, endDate: string): number => {
@@ -242,7 +247,6 @@ type FormState = {
   startDate: string;
   endDate: string;
   duration: string;
-  status: ActivityStatus;
   responsibleManagerId: string;
   departmentId: string;
   priorityContext: PriorityContext;
@@ -256,14 +260,13 @@ type SkillSelectionState = {
 };
 
 type AssignFormState = {
-  status: ActivityStatus;
   responsibleManagerId: string;
   departmentId: string;
 };
 
 const INITIAL_FORM: FormState = {
   title: "", type: "TRAINING", availableSlots: 1, description: "", location: "",
-  startDate: "", endDate: "", duration: "", status: "PLANNED",
+  startDate: "", endDate: "", duration: "",
   responsibleManagerId: "", departmentId: "", priorityContext: "UPSKILLING", targetLevel: "MEDIUM",
 };
 
@@ -301,7 +304,7 @@ export default function ActivitiesManagement() {
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecord | null>(null);
   const [selectedSkills, setSelectedSkills] = useState<SkillSelectionState[]>([]);
   const [assignForm, setAssignForm] = useState<AssignFormState>({
-    status: "PLANNED", responsibleManagerId: "", departmentId: "",
+    responsibleManagerId: "", departmentId: "",
   });
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [calculatedDuration, setCalculatedDuration] = useState<number>(0);
@@ -324,7 +327,7 @@ export default function ActivitiesManagement() {
       setError("");
       try {
         const [activitiesRes, usersRes, departmentsRes, skillsRes] = await Promise.allSettled([
-          listActivities(), getUsers(), getAllDepartments(), listSkills(),
+          listActivities({ hrView: "drafts" }), getUsers(), getAllDepartments(), listSkills(),
         ]);
         if (activitiesRes.status === "fulfilled") setActivities(activitiesRes.value || []);
         if (usersRes.status === "fulfilled") setUsers(usersRes.value || []);
@@ -513,7 +516,7 @@ export default function ActivitiesManagement() {
       title: form.title.trim(), type: form.type, requiredSkills: [],
       availableSlots: Number(form.availableSlots), description: form.description.trim(),
       location: form.location.trim(), startDate: form.startDate, endDate: form.endDate,
-      duration: form.duration.trim(), status: form.status,
+      duration: form.duration.trim(),
       responsibleManagerId: form.responsibleManagerId || undefined,
       departmentId: form.departmentId || undefined,
       priorityContext: form.priorityContext, targetLevel: form.targetLevel,
@@ -570,7 +573,7 @@ export default function ActivitiesManagement() {
     setForm({
       title: a.title, type: a.type, availableSlots: a.availableSlots,
       description: a.description, location: a.location, startDate: a.startDate,
-      endDate: a.endDate, duration: a.duration, status: a.status,
+      endDate: a.endDate, duration: a.duration,
       responsibleManagerId: a.responsibleManagerId || "", departmentId: a.departmentId || "",
       priorityContext: a.priorityContext, targetLevel: a.targetLevel,
     });
@@ -601,7 +604,6 @@ export default function ActivitiesManagement() {
     setAssignSaving(true); setError(""); setSuccess("");
     try {
       const updated = await updateActivityById(selectedActivity._id, {
-        status: assignForm.status,
         responsibleManagerId: assignForm.responsibleManagerId || undefined,
         departmentId: assignForm.departmentId || undefined,
       });
@@ -721,13 +723,15 @@ export default function ActivitiesManagement() {
           >
             <FiUsers size={14} /> Staff
           </button>
-          <button
-            type="button"
-            style={{ ...styles.btn, ...styles.btnDanger, fontSize: "13px", padding: "8px 12px" }}
-            onClick={(e) => { e.stopPropagation(); setDeleteConfirm(a._id); }}
-          >
-            <FiTrash2 size={14} /> Delete
-          </button>
+          {canDeleteActivity(a) ? (
+            <button
+              type="button"
+              style={{ ...styles.btn, ...styles.btnDanger, fontSize: "13px", padding: "8px 12px" }}
+              onClick={(e) => { e.stopPropagation(); setDeleteConfirm(a._id); }}
+            >
+              <FiTrash2 size={14} /> Delete
+            </button>
+          ) : null}
         </div>
       </div>
     );
@@ -743,8 +747,11 @@ export default function ActivitiesManagement() {
         <div className="page-header" style={{ alignItems: "start", gap: "16px", flexWrap: "wrap" }}>
           <div>
             <h1 className="page-title" style={{ margin: 0 }}>Activity Management</h1>
-            <p className="page-subtitle" style={{ maxWidth: "600px" }}>
-              Create and prioritize training, certification, project, mission, and audit activities.
+            <p className="page-subtitle" style={{ maxWidth: "720px" }}>
+              <strong>New &amp; not started:</strong> only activities that are still <strong>Planned</strong> with no
+              staffing flow yet (before IA recommendations and before the list is sent to the manager). Use{" "}
+              <strong>Staffing &amp; validation</strong> in the sidebar once you begin. Delete is allowed here only for
+              these draft activities.
             </p>
           </div>
           <button
@@ -773,7 +780,7 @@ export default function ActivitiesManagement() {
           {/* Toolbar */}
           <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-              <div style={styles.subheading}>Activities</div>
+              <div style={styles.subheading}>Draft activities</div>
               <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
                 {/* Group By */}
                 <div style={{ position: "relative" }}>
@@ -1070,7 +1077,7 @@ export default function ActivitiesManagement() {
                     />
                   </div>
                 </div>
-                <div style={{ ...styles.grid4, marginTop: "14px" }}>
+                <div style={{ ...styles.grid3, marginTop: "14px" }}>
                   <div>
                     <label style={styles.label}>
                       Duration
@@ -1085,16 +1092,6 @@ export default function ActivitiesManagement() {
                       value={form.duration}
                       onChange={(e) => setForm((prev) => ({ ...prev, duration: e.target.value }))}
                     />
-                  </div>
-                  <div>
-                    <label style={styles.label}>Status</label>
-                    <select
-                      style={styles.input}
-                      value={form.status}
-                      onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as ActivityStatus }))}
-                    >
-                      {statusOptions.map((x) => <option key={x} value={x}>{formatLabel(x)}</option>)}
-                    </select>
                   </div>
                   <div>
                     <label style={styles.label}>Department *</label>
@@ -1178,16 +1175,6 @@ export default function ActivitiesManagement() {
               <div style={{ ...styles.muted, fontSize: "14px", marginBottom: "20px" }}>{selectedActivity.title}</div>
               
               <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                <div>
-                  <label style={styles.label}>Status</label>
-                  <select
-                    style={styles.input}
-                    value={assignForm.status}
-                    onChange={(e) => setAssignForm((prev) => ({ ...prev, status: e.target.value as ActivityStatus }))}
-                  >
-                    {statusOptions.map((x) => <option key={x} value={x}>{formatLabel(x)}</option>)}
-                  </select>
-                </div>
                 <div>
                   <label style={styles.label}>Department *</label>
                   <select
@@ -1311,7 +1298,7 @@ export default function ActivitiesManagement() {
             <div onClick={(e) => e.stopPropagation()} style={{ width: "min(440px, 96vw)", ...styles.card, padding: "24px", borderLeft: "4px solid #dc2626" }}>
               <div style={{ fontWeight: 800, fontSize: "18px", color: "#dc2626", marginBottom: "12px" }}>⚠️ Delete Activity?</div>
               <div style={{ ...styles.muted, marginBottom: "20px" }}>
-                This action cannot be undone. Are you sure you want to permanently delete this activity?
+                Only unused planned activities can be deleted. This cannot be undone.
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
                 <button type="button" style={styles.btn} disabled={deleting} onClick={() => setDeleteConfirm(null)}>Cancel</button>

@@ -34,7 +34,8 @@ export type ActivityRecord = {
   hrFinalLaunchAt?: string | null;
 };
 
-export type CreateActivityInput = Omit<ActivityRecord, "_id" | "createdAt">;
+/** Payload for create/update; `status` is system-controlled (planned → in progress → completed / cancel). */
+export type CreateActivityInput = Omit<ActivityRecord, "_id" | "createdAt" | "status">;
 
 function authHeaders() {
   const rawToken = localStorage.getItem("token") || localStorage.getItem("access_token");
@@ -62,9 +63,10 @@ async function handle(res: Response) {
       // keep fallback message
     }
 
-    if (res.status === 401 || res.status === 403) {
-      msg = "Unauthorized session. Please sign out and log in again with your HR account.";
+    if (res.status === 401) {
+      msg = "Unauthorized session. Please sign out and log in again.";
     }
+    // 403: keep API message (e.g. manager review not available until HR sends the list)
 
     throw new Error(msg);
   }
@@ -176,8 +178,19 @@ function mapApiActivity(raw: any): ActivityRecord {
   };
 }
 
-export async function listActivities(): Promise<ActivityRecord[]> {
-  const res = await fetch(`${BASE}/activities`, {
+export type ListActivitiesQuery = {
+  /** Drafts: planned + workflow DRAFT (before IA/staffing). Pipeline / completed: HR lists */
+  hrView?: "drafts" | "pipeline" | "completed";
+  /** Manager: activities in progress after HR launch vs completed/cancelled archive */
+  managerView?: "running" | "past";
+};
+
+export async function listActivities(params?: ListActivitiesQuery): Promise<ActivityRecord[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.hrView != null) searchParams.set("hrView", params.hrView);
+  if (params?.managerView != null) searchParams.set("managerView", params.managerView);
+  const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
+  const res = await fetch(`${BASE}/activities${qs}`, {
     method: "GET",
     headers: authHeaders(),
   });
@@ -209,7 +222,6 @@ export async function createActivity(input: CreateActivityInput): Promise<Activi
     endDate: input.endDate,
     duration: input.duration,
     seats: input.availableSlots,
-    status: input.status || "PLANNED",
     context: input.priorityContext,
     priority_level: input.targetLevel,
   };
@@ -243,7 +255,6 @@ export async function updateActivityById(
   if (patch.availableSlots !== undefined) payload.seats = patch.availableSlots;
   if (patch.priorityContext !== undefined) payload.context = patch.priorityContext;
   if (patch.targetLevel !== undefined) payload.priority_level = patch.targetLevel;
-  if (patch.status !== undefined) payload.status = patch.status;
 
   if (patch.responsibleManagerId !== undefined) {
     payload.responsible_manager = patch.responsibleManagerId || null;
@@ -269,6 +280,16 @@ export async function deleteActivityById(activityId: string): Promise<void> {
   });
 
   await handle(res);
+}
+
+export async function cancelActivityById(activityId: string): Promise<ActivityRecord> {
+  const encodedId = encodeURIComponent(activityId);
+  const res = await fetch(`${BASE}/activities/${encodedId}/cancel`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  const data = await handle(res);
+  return mapApiActivity(data);
 }
 
 // ==================== Activity Skills ====================

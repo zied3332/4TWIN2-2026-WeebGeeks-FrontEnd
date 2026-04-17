@@ -31,10 +31,13 @@ export type InvitationsPeriod = "all" | "week" | "month";
 export async function getMyInvitations(params?: {
   q?: string;
   period?: InvitationsPeriod;
+  /** Ended activities you accepted (participation archive) */
+  view?: "archive";
 }): Promise<EmployeeInvitationListItem[]> {
   const search = new URLSearchParams();
   if (params?.q?.trim()) search.set("q", params.q.trim());
   if (params?.period && params.period !== "all") search.set("period", params.period);
+  if (params?.view === "archive") search.set("view", "archive");
   const qs = search.toString();
   const res = await axios.get<EmployeeInvitationListItem[]>(
     `${API_URL}/activity-invitations/employee/me${qs ? `?${qs}` : ""}`,

@@ -74,6 +74,8 @@ export type EmployeeInvitationListItem = {
   activityLocation: string;
   activityStartDate?: string;
   activityEndDate?: string;
+  /** Present on archive list (ended activities) */
+  activityStatus?: string;
 };
 
 export type EmployeeInvitationActivityDetail = {

@@ -26,12 +26,20 @@ import HrStatsDashboard from "../pages/hr/HrStatsDashboard";
 import HrCalendarPage from "../pages/hr/HrCalendarPage.tsx";
 import ActivityStaffingPage from "../pages/hr/ActivityStaffingPage";
 import ManagerDecisionsPage from "../pages/hr/ManagerDecisionsPage";
+import {
+  HrStaffingPipelinePage,
+  HrCompletedActivitiesPage,
+} from "../pages/hr/HrFilteredActivitiesPage";
 
 // Manager pages
 import ManagerTeam from "../pages/manger/ManagerTeam";
 import ManagerActivities from "../pages/manger/ManagerActivities.tsx";
 import ManagerDashboard from "../pages/manger/ManagerDashboard";
 import ManagerActivityReviewPage from "../pages/manger/ManagerActivityReviewPage";
+import {
+  ManagerRunningActivitiesPage,
+  ManagerPastActivitiesPage,
+} from "../pages/manger/ManagerFilteredActivitiesPage";
 
 // AI pages
 import TextCorrectionPage from "../pages/ai/TextCorrectionPage";
@@ -40,6 +48,7 @@ import TextCorrectionPage from "../pages/ai/TextCorrectionPage";
 import CvUpload from "../pages/employee/CvUpload";
 import MySkillsPage from "../pages/employee/skills/MySkillsPage";
 import EmployeeActivityInvitationsPage from "../pages/employee/EmployeeActivityInvitationsPage";
+import EmployeeActivityArchivePage from "../pages/employee/EmployeeActivityArchivePage";
 import EmployeeActivityInvitationDetailPage from "../pages/employee/EmployeeActivityInvitationDetailPage";
 import AuditHistoryPage from "../pages/audit/AuditHistoryPage";
 
@@ -141,6 +150,8 @@ export const router = createBrowserRouter([
           { path: "users", element: <UsersManagement /> },
           { path: "departments", element: <HrDepartments /> },
           { path: "activities", element: <HrActivitiesManagement /> },
+          { path: "activities/pipeline", element: <HrStaffingPipelinePage /> },
+          { path: "activities/archive", element: <HrCompletedActivitiesPage /> },
           { path: "activities/:activityId/staffing", element: <ActivityStaffingPage /> },
           { path: "activities/:activityId/manager-decisions", element: <ManagerDecisionsPage /> },
           { path: "skills-dashboard", element: <HrSkillsDashboard /> },
@@ -204,6 +215,8 @@ export const router = createBrowserRouter([
           { path: "dashboard", element: <ManagerDashboard /> },
           { path: "team", element: <ManagerTeam /> },
           { path: "activities", element: <ManagerActivities /> },
+          { path: "activities/running", element: <ManagerRunningActivitiesPage /> },
+          { path: "activities/archive", element: <ManagerPastActivitiesPage /> },
           { path: "activities/:activityId/review", element: <ManagerActivityReviewPage /> },
           { path: "activities/:activityId/staffing", element: <ManagerStaffingToReviewRedirect /> },
           { path: "skills", element: <SkillsManagementPage /> },
@@ -233,6 +246,7 @@ export const router = createBrowserRouter([
           { path: "cv", element: <CvUpload /> },
           { path: "skills", element: <MySkillsPage /> },
           { path: "activity-invitations", element: <EmployeeActivityInvitationsPage /> },
+          { path: "activities/archive", element: <EmployeeActivityArchivePage /> },
           {
             path: "activity-invitations/:invitationId",
             element: <EmployeeActivityInvitationDetailPage />,

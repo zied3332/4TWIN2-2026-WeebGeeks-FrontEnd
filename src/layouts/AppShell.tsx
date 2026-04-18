@@ -1,4 +1,3 @@
-// src/layouts/AppShell.tsx
 import type { ReactNode } from "react";
 import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
@@ -12,11 +11,9 @@ type NavItem = {
   to: string;
   label: string;
   end?: boolean;
+  group?: string;
+  icon?: string;
 };
-
-function linkClass({ isActive }: { isActive: boolean }) {
-  return `side-link nav-item ${isActive ? "active" : ""}`;
-}
 
 type NavGroup = {
   title: string;
@@ -24,7 +21,13 @@ type NavGroup = {
 };
 
 type ThemeMode = "light" | "dark";
+
 const THEME_STORAGE_KEY = "themeMode";
+const FALLBACK_AVATAR = "https://randomuser.me/api/portraits/men/35.jpg";
+
+function linkClass({ isActive }: { isActive: boolean }) {
+  return `side-link nav-item ${isActive ? "active" : ""}`;
+}
 
 function getStoredThemeMode(): ThemeMode {
   try {
@@ -41,10 +44,10 @@ function applyThemeMode(theme: ThemeMode) {
   document.body.style.colorScheme = theme;
 }
 
-function getNavGroup(label: string) {
+function inferNavGroup(label: string) {
   const text = label.toLowerCase();
 
-  if (text.includes("recommend") || text.includes("copilot")) {
+  if (text.includes("copilot") || text.includes("recommend") || text.includes("analytic")) {
     return "Intelligence";
   }
 
@@ -55,9 +58,13 @@ function getNavGroup(label: string) {
   return "Main menu";
 }
 
-const FALLBACK_AVATAR = "https://randomuser.me/api/portraits/men/35.jpg";
-
-function SidebarAvatar({ avatarUrl, name }: { avatarUrl?: string; name: string }) {
+function SidebarAvatar({
+  avatarUrl,
+  name,
+}: {
+  avatarUrl?: string;
+  name: string;
+}) {
   const [loadError, setLoadError] = React.useState(false);
 
   if (!avatarUrl) {
@@ -66,6 +73,7 @@ function SidebarAvatar({ avatarUrl, name }: { avatarUrl?: string; name: string }
 
   if (loadError) {
     const initial = (name || "U").trim().charAt(0).toUpperCase();
+
     return (
       <div
         className="avatar-sm"
@@ -73,7 +81,7 @@ function SidebarAvatar({ avatarUrl, name }: { avatarUrl?: string; name: string }
           width: 40,
           height: 40,
           borderRadius: 999,
-          background: "var(--color-primary, #0f8f66)",
+          background: "var(--primary, #0f8f66)",
           color: "#fff",
           display: "grid",
           placeItems: "center",
@@ -170,20 +178,34 @@ export default function AppShell({
   const workspaceCode =
     (badge || "HR").replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase() || "HR";
 
-  const navGroups: NavGroup[] = [
-    {
-      title: "Main menu",
-      items: nav.filter((item) => getNavGroup(item.label) === "Main menu"),
-    },
-    {
-      title: "Intelligence",
-      items: nav.filter((item) => getNavGroup(item.label) === "Intelligence"),
-    },
-    {
-      title: "System",
-      items: nav.filter((item) => getNavGroup(item.label) === "System"),
-    },
-  ].filter((group) => group.items.length > 0);
+  const navGroups: NavGroup[] = React.useMemo(() => {
+    const orderedTitles = [
+      "Main menu",
+      "Organization",
+      "Operations",
+      "Skills",
+      "Personal",
+      "Intelligence",
+      "System",
+    ];
+
+    const groupedMap = new Map<string, NavItem[]>();
+
+    nav.forEach((item) => {
+      const title = item.group || inferNavGroup(item.label);
+      if (!groupedMap.has(title)) {
+        groupedMap.set(title, []);
+      }
+      groupedMap.get(title)!.push(item);
+    });
+
+    return orderedTitles
+      .filter((titleKey) => groupedMap.has(titleKey))
+      .map((titleKey) => ({
+        title: titleKey,
+        items: groupedMap.get(titleKey)!,
+      }));
+  }, [nav]);
 
   return (
     <div
@@ -220,6 +242,7 @@ export default function AppShell({
                   alt="IntelliHR logo"
                 />
               </div>
+
               <div className="brand-text">
                 <h1>IntelliHR</h1>
               </div>
@@ -242,7 +265,6 @@ export default function AppShell({
               <span className="workspace-label">Workspace</span>
               <strong>{badge}</strong>
             </div>
-            <span className="workspace-caret" aria-hidden="true"></span>
           </div>
 
           <div className="sidebar-search" aria-hidden="true">
@@ -266,7 +288,7 @@ export default function AppShell({
                     className={linkClass}
                   >
                     <span className="side-link-icon" aria-hidden="true">
-                      <NavItemIcon label={item.label} />
+                      <NavItemIcon label={item.label} icon={item.icon} />
                     </span>
                     <span className="side-link-text">{item.label}</span>
                   </NavLink>
@@ -289,6 +311,7 @@ export default function AppShell({
                     </span>
                     <span className="theme-toggle-subtext">Appearance</span>
                   </span>
+
                   <span
                     className={`theme-toggle-track ${themeMode === "dark" ? "is-dark" : ""}`}
                   >
@@ -386,10 +409,16 @@ export default function AppShell({
   );
 }
 
-function NavItemIcon({ label }: { label: string }) {
-  const text = label.toLowerCase();
+function NavItemIcon({
+  label,
+  icon,
+}: {
+  label: string;
+  icon?: string;
+}) {
+  const key = (icon || label).toLowerCase();
 
-  if (text.includes("dashboard")) {
+  if (key.includes("dashboard")) {
     return (
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2" />
@@ -400,7 +429,53 @@ function NavItemIcon({ label }: { label: string }) {
     );
   }
 
-  if (text.includes("activit")) {
+  if (key.includes("users")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="2" />
+        <path
+          d="M3 19C3 16.791 4.791 15 7 15H11C13.209 15 15 16.791 15 19"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <circle cx="17" cy="9" r="2.5" stroke="currentColor" strokeWidth="2" />
+        <path
+          d="M16 19H21"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  if (key.includes("employee")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
+        <path
+          d="M5 20C5 16.686 8.134 14 12 14C15.866 14 19 16.686 19 20"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  if (key.includes("department")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="4" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+        <rect x="14" y="4" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+        <rect x="9" y="14" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+        <path d="M12 10V14M7 10H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (key.includes("activity")) {
     return (
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect x="4" y="5" width="16" height="15" rx="3" stroke="currentColor" strokeWidth="2" />
@@ -414,27 +489,27 @@ function NavItemIcon({ label }: { label: string }) {
     );
   }
 
-  if (text.includes("user") || text.includes("employee") || text.includes("team")) {
+  if (key.includes("pipeline") || key.includes("validation") || key.includes("staffing")) {
     return (
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M16 21V19C16 16.8 14.2 15 12 15H7C4.8 15 3 16.8 3 19V21"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <circle cx="9.5" cy="8" r="3" stroke="currentColor" strokeWidth="2" />
-        <path
-          d="M17 11C18.7 11 20 9.7 20 8C20 6.3 18.7 5 17 5"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
+        <rect x="3" y="6" width="5" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
+        <rect x="10" y="9" width="5" height="9" rx="2" stroke="currentColor" strokeWidth="2" />
+        <rect x="17" y="4" width="4" height="14" rx="2" stroke="currentColor" strokeWidth="2" />
       </svg>
     );
   }
 
-  if (text.includes("skill")) {
+  if (key.includes("archive") || key.includes("completed")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="7" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
+        <path d="M3 7H21" stroke="currentColor" strokeWidth="2" />
+        <path d="M10 12H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (key.includes("skills")) {
     return (
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M8 7L12 3L21 12L17 16L8 7Z" stroke="currentColor" strokeWidth="2" />
@@ -443,20 +518,54 @@ function NavItemIcon({ label }: { label: string }) {
     );
   }
 
-  if (text.includes("recommend") || text.includes("copilot") || text.includes("analytic")) {
+  if (key.includes("assign")) {
     return (
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="2" />
         <path
-          d="M12 3L14.8 8.2L20.5 9.1L16.3 13.1L17.3 18.8L12 16L6.7 18.8L7.7 13.1L3.5 9.1L9.2 8.2L12 3Z"
+          d="M3 19C3 16.791 4.791 15 7 15H9"
           stroke="currentColor"
           strokeWidth="2"
-          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        <path
+          d="M14 8H21M17.5 4.5V11.5"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
         />
       </svg>
     );
   }
 
-  if (text.includes("notification")) {
+  if (key.includes("history")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M4 12A8 8 0 1 0 6.343 6.343"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path d="M4 4V9H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M12 8V12L15 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (key.includes("copilot") || key.includes("recommend") || key.includes("ai")) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="7" width="10" height="10" rx="3" stroke="currentColor" strokeWidth="2" />
+        <path d="M12 3V5M12 19V21M3 12H5M19 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="10" cy="11" r="1" fill="currentColor" />
+        <circle cx="14" cy="11" r="1" fill="currentColor" />
+        <path d="M10 14H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (key.includes("notification")) {
     return (
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
@@ -476,7 +585,12 @@ function NavItemIcon({ label }: { label: string }) {
 
   return (
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M5 12H19M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M5 12H19M12 5V19"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
